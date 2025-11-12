@@ -3,7 +3,6 @@ package entities
 import (
 	"errors"
 	"time"
-	"dto"
 
 	"github.com/google/uuid"
 )
@@ -62,4 +61,20 @@ func (i *Invoice) CalculateTotal() (float64){
 
 func (i *Invoice) MarkAsPaid(){
 	i.Status = StatusPaid
+}
+
+func (i *Invoice) Cancel(){
+	i.Status = StatusCanceled
+}
+
+func (i *Invoice) Validate() error{
+	if i.CustomerId == ""{
+		return errors.New("CustomerId is required")
+	}
+
+	if len(i.Items) ==0{
+		return errors.New("Invoice must have at least one Item")
+	}
+
+	return nil
 }
