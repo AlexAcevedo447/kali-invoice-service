@@ -3,9 +3,9 @@ package entities
 import (
 	"errors"
 	"time"
+	"dto"
 
 	"github.com/google/uuid"
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/dto/"
 )
 
 
@@ -18,17 +18,48 @@ const (
 )
 
 type Invoice struct {
-	Id string
-	CustomerId string
-	IssueDate time.Time
-	DueDate time.Time
-	Items []InvoiceItem
-	Total float64
-	Status InvoiceStatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id string `gorm:"primaryKey;type:uuid" json:"id"`
+	CustomerId string `gorm:"type:uuid;not null" json:"customer_id"`
+	IssueDate time.Time `gorm:"not null" json:"issue_date"`
+	DueDate time.Time `gorm:"not null" json:"due_date"`
+	Items []InvoiceItem `gorm:"foreignKey:InvoiceID;constraint:OnDelete:CASCADE" json:"items"`
+	Total float64 `gorm:"not null" json:"total"`
+	Status InvoiceStatus `gorm:"type:varchar(20);not null" json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func NewInvoice(dto NewInvoiceDTO) (*Invoice, error) {
+	if dto.CustomerID == "" {
+		return nil, errors.New("CustomerId is required")
+	}
 
+	invoice := &Invoice{
+		Id: uuid.New().String(),
+		CustomerId: dto.CustomerID,
+		IssueDate: dto.IssueDate,
+		DueDate: dto.DueDate,
+		Items: dto.Items,
+		Status: StatusPending,
+	}
+
+	invoice.CalculateTotal()
+	return invoice, nil
+}
+
+func (i *Invoice) CalculateTotal() (float64){
+	var total float64
+	
+	for idx := range i.Items {
+		i.Items[idx].CalculateSubtotal()
+		total += i.Items[idx].Subtotal
+	}
+
+	i.Total = total
+
+	return total
+}
+
+func (i *Invoice) MarkAsPaid(){
+	i.Status = StatusPaid
 }
