@@ -1,0 +1,30 @@
+
+services:
+  api:
+    build:
+      context: .
+      target: dev # Usa la etapa dev del Dockerfile
+    container_name: kali-invoice-dev
+    env_file: .env
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    volumes:
+      - .:/app # Código en caliente
+      - /app/tmp
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: kali-invoice-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - kali_invoice_data:/var/lib/postgresql/data
+
+volumes:
+  kali_invoice_data:

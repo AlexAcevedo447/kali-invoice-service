@@ -1,0 +1,21 @@
+{
+  "name": "kali-invoice-service",
+  "dockerComposeFile": "docker-compose.dev.yml",
+  "service": "api",
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "go.toolsManagement.autoUpdate": true,
+        "go.lintTool": "golangci-lint",
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "golang.go",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}
