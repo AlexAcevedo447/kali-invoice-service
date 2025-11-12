@@ -13,6 +13,6 @@ func main() {
 
 	port := os.Getenv("APP_PORT")
 
-	log.Println("API listening on port :"+port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Printf("API listening on port %s\n", port)
+    log.Fatal(http.ListenAndServe(":"+port, router))
 }
