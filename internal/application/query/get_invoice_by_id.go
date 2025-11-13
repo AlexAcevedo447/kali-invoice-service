@@ -7,10 +7,10 @@ import (
 )
 
 type AppGetByIdInvoiceQuery struct{
-	Repo domain.GetByIdInvoiceQueryRepository
+	Repo domain.IGetByIdInvoiceQueryRepository
 }
 
-func NewAppGetByIdInvoiceQuery(repo domain.GetByIdInvoiceQueryRepository) *AppGetByIdInvoiceQuery {
+func NewAppGetByIdInvoiceQuery(repo domain.IGetByIdInvoiceQueryRepository) *AppGetByIdInvoiceQuery {
 	return &AppGetByIdInvoiceQuery{
 		Repo: repo,
 	}

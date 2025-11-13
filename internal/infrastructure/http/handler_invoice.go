@@ -25,7 +25,7 @@ func NewInvoiceHandler(
 	}
 }
 
-func (handler * InvoiceHandler) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request){
+func (handler *InvoiceHandler) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request){
 	var dto dto.AppCreateInvoiceDTO
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
@@ -58,13 +58,13 @@ func (handler *InvoiceHandler) GetInvoiceByIdHandler(w http.ResponseWriter, r *h
     json.NewEncoder(w).Encode(invoice)
 }
 
-func (handler *InvoiceHandler) Router() RouteConfig {
+func (handler *InvoiceHandler) Router() IRouteConfig {
 	router := chi.NewRouter()
 
 	router.Post("/", handler.CreateInvoiceHandler)
 	router.Get("/{id}", handler.GetInvoiceByIdHandler)
 
-	return RouteConfig{
+	return IRouteConfig{
 		BasePath: "/invoices",
 		Handler: router,
 	}
