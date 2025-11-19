@@ -17,15 +17,13 @@ const (
 )
 
 type Invoice struct {
-	Id string `gorm:"primaryKey;type:uuid" json:"id"`
-	CustomerId string `gorm:"type:uuid;not null" json:"customer_id"`
-	IssueDate time.Time `gorm:"not null" json:"issue_date"`
-	DueDate time.Time `gorm:"not null" json:"due_date"`
-	Items []InvoiceItem `gorm:"foreignKey:InvoiceID;constraint:OnDelete:CASCADE" json:"items"`
-	Total float64 `gorm:"not null" json:"total"`
-	Status InvoiceStatus `gorm:"type:varchar(20);not null" json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id string 
+	CustomerId string 
+	IssueDate time.Time 
+	DueDate time.Time 
+	Items []InvoiceItem 
+	Total float64 
+	Status InvoiceStatus
 }
 
 func NewInvoice(dto NewInvoiceDTO) (*Invoice, error) {

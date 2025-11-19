@@ -1,0 +1,37 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - unused
+    - ineffassign
+    - gofmt
+    - gofumpt
+    - gocyclo
+    - dupl
+    - gosec
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+
+  dupl:
+    threshold: 150
+
+issues:
+  exclude-rules:
+    # Ignorar errores de close sin manejar
+    - linters:
+        - errcheck
+      text: "Close"
+
+    # Ignorar generated files
+    - path: ".*_mock.go"
+      linters:
+        - govet
+        - staticcheck

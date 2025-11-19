@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/entities"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/persistence/contracts"
 	"gorm.io/gorm"
 )
 
@@ -32,6 +32,6 @@ func (r *InvoiceQueryRepository) GetAll() ([]*entities.Invoice, error) {
 
 // Garantiza que implementa las interfaces del dominio
 var (
-	_ domain.IGetAllInvoiceQueryRepository   = (*InvoiceQueryRepository)(nil)
-	_ domain.IGetByIdInvoiceQueryRepository   = (*InvoiceQueryRepository)(nil)
+	_ contracts.IGetAllInvoiceQueryRepository   = (*InvoiceQueryRepository)(nil)
+	_ contracts.IGetByIdInvoiceQueryRepository   = (*InvoiceQueryRepository)(nil)
 )

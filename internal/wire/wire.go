@@ -1,3 +1,6 @@
+//go:build wireinject
+// +build wireinject
+
 package wire
 
 import (
@@ -10,7 +13,7 @@ import (
 func InitializeInvoiceAPI() netHttp.Handler {
 	wireGo.Build(
 		DatabaseSet,
-		RepositorySet,
+		InfrastructureSet,
 		ApplicationSet,
 		RouterDataSet,
 	)

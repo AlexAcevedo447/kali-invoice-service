@@ -1,7 +1,8 @@
 package entities
 
 type NewInvoiceItemDTO struct {
+	InvoiceId string
 	Item *Item
-	Quantity int
+	Quantity float64
 	UnitPrice float64
 }

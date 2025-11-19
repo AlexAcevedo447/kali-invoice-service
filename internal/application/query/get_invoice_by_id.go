@@ -2,15 +2,15 @@ package query
 
 import (
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/application/dto"
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/entities"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/persistence/contracts"
 )
 
 type AppGetByIdInvoiceQuery struct{
-	Repo domain.IGetByIdInvoiceQueryRepository
+	Repo contracts.IGetByIdInvoiceQueryRepository
 }
 
-func NewAppGetByIdInvoiceQuery(repo domain.IGetByIdInvoiceQueryRepository) *AppGetByIdInvoiceQuery {
+func NewAppGetByIdInvoiceQuery(repo contracts.IGetByIdInvoiceQueryRepository) *AppGetByIdInvoiceQuery {
 	return &AppGetByIdInvoiceQuery{
 		Repo: repo,
 	}

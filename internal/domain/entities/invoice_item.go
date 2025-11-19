@@ -10,7 +10,7 @@ type InvoiceItem struct {
 	Id string  `gorm:"primaryKey;type:uuid" json:"id"`
 	InvoiceId string  `gorm:"type:uuid;not null;index" json:"invoice_id"`
 	ItemId string  `gorm:"type:uuid;not null" json:"item_id"`
-	Quantity int     `gorm:"not null" json:"quantity"`
+	Quantity float64 `gorm:"not null" json:"quantity"`
 	UnitPrice float64 `gorm:"not null" json:"unit_price"`
 	Subtotal float64 `gorm:"not null" json:"subtotal"`
 	Item *Item   `gorm:"foreignKey:ItemID" json:"item,omitempty"`
@@ -30,6 +30,7 @@ func NewInvoiceItem(dto NewInvoiceItemDTO) (*InvoiceItem, error){
 		ItemId: dto.Item.Id,
 		Quantity: dto.Quantity,
 		UnitPrice: dto.UnitPrice,
+		InvoiceId: dto.InvoiceId,
 	}
 
 	invoiceItem.CalculateSubtotal()

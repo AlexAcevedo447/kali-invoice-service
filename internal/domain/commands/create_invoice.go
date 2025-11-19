@@ -6,10 +6,10 @@ import (
 )
 
 type CreateInvoiceCommand struct {
-	repo domain.ICreateInvoiceCommandRepository
+	repo domain.ICreateInvoiceCommandFactory
 }
 
-func NewCreateInvoiceCommand(repo domain.ICreateInvoiceCommandRepository) *CreateInvoiceCommand {
+func NewCreateInvoiceCommand(repo domain.ICreateInvoiceCommandFactory) *CreateInvoiceCommand {
 	return &CreateInvoiceCommand{repo: repo}
 }
 
@@ -20,13 +20,13 @@ func (cmd *CreateInvoiceCommand) Execute(dto entities.NewInvoiceDTO)(*entities.I
 		return nil, err
 	}
 
-	if err:= invoice.Validate(); err != nil {
-		return nil, err
-	}
-
-	if err := cmd.repo.Save(invoice); err != nil {
+	if err := invoice.Validate(); err != nil {
 		return nil, err
 	}
 
 	return invoice, nil
 }
+
+var (
+	_ domain.ICreateInvoiceCommandFactory = (*CreateInvoiceCommand)(nil)
+)

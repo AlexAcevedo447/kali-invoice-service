@@ -2,22 +2,14 @@ package domain
 
 import "github.com/AlexAcevedo447/kali-invoice-service/internal/domain/entities"
 
-type ICancelInvoiceCommandRepository interface {
+type ICancelInvoiceCommandFactory interface {
 	Cancel(id string) error
 }
 
-type ICreateInvoiceCommandRepository interface {
-	Save(invoice *entities.Invoice) error
+type ICreateInvoiceCommandFactory interface {
+	Execute(invoice entities.NewInvoiceDTO) (*entities.Invoice, error)
 }
 
-type IUpdateInvoiceCommandRepository interface {
+type IUpdateInvoiceCommandFactory interface {
 	Update(invoice *entities.Invoice) error
-}
-
-type IGetByIdInvoiceQueryRepository interface {
-	GetById(id string) (*entities.Invoice, error)
-}
-
-type IGetAllInvoiceQueryRepository interface {
-	GetAll() ([]*entities.Invoice, error)
 }

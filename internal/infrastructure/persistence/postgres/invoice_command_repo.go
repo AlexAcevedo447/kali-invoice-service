@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/entities"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/persistence/contracts"
 	"gorm.io/gorm"
 )
 
@@ -24,5 +24,5 @@ func (r *InvoiceCommandRepository) Update(invoice *entities.Invoice) error {
 
 // Garantiza que implementa las interfaces del dominio
 var (
-	_ domain.ICreateInvoiceCommandRepository   = (*InvoiceCommandRepository)(nil)
+	_ contracts.ICreateInvoiceCommandRepository   = (*InvoiceCommandRepository)(nil)
 )

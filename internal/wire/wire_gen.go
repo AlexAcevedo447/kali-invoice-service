@@ -19,7 +19,7 @@ import (
 // Injectors from wire.go:
 
 // Inicializa el router con todas las dependencias ya inyectadas
-func InitializeInvoiceAPIBuild() http.Handler {
+func InitializeInvoiceAPI() http.Handler {
 	pgConfig := config.LoadDatabaseConfig()
 	db := database.NewPostgresConnection(pgConfig)
 	invoiceCommandRepository := postgres.NewInvoiceCommandRepository(db)

@@ -5,17 +5,17 @@ import (
 
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/application/dto"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain"
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/commands"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/entities"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/persistence/contracts"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/shared/utils/helpers"
 )
 
 type AppCreateInvoiceCommand struct{
-	Repo domain.ICreateInvoiceCommandRepository
-	CreateCmd commands.CreateInvoiceCommand
+	Repo contracts.ICreateInvoiceCommandRepository
+	CreateCmd domain.ICreateInvoiceCommandFactory
 }
 
-func NewAppCreateInvoiceCommand(repo domain.ICreateInvoiceCommandRepository) *AppCreateInvoiceCommand {
+func NewAppCreateInvoiceCommand(repo contracts.ICreateInvoiceCommandRepository) *AppCreateInvoiceCommand {
 	return &AppCreateInvoiceCommand{
 		Repo: repo,
 	}
@@ -29,7 +29,7 @@ func (command *AppCreateInvoiceCommand) Execute(
 		IssueDate: helpers.OrTime(dto.IssueDate, time.Now()),
 	}
 
-	invoice, creationErr := command.CreateCmd.Execute(newInvoiceDto)
+	invoice ,creationErr := command.CreateCmd.Execute(newInvoiceDto)
 
 	if creationErr != nil {
 		return nil, creationErr
