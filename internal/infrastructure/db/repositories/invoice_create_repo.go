@@ -32,9 +32,7 @@ func (r *invoiceCreateRepo) Save(inv *invoice.Invoice) error {
 
 		allTaxes := make([]models.InvoiceItemTaxModel, 0)
 		for _, item := range model.Items {
-			for _, tax := range item.Taxes {
-				allTaxes = append(allTaxes, tax)
-			}
+			allTaxes = append(allTaxes, item.Taxes...)
 		}
 		if len(allTaxes) > 0 {
 			if _, err := r.db.NewInsert().Model(&allTaxes).Exec(ctx); err != nil {

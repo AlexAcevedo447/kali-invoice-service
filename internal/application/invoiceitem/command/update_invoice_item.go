@@ -25,10 +25,7 @@ func (c *UpdateInvoiceItemCommand) Execute(id string, input UpdateInvoiceItemInp
 	if err != nil {
 		return nil, err
 	}
-	taxes := make([]invoiceitem.TaxInput, 0, len(input.Taxes))
-	for _, t := range input.Taxes {
-		taxes = append(taxes, invoiceitem.TaxInput{Code: t.Code, Kind: t.Kind, Rate: t.Rate})
-	}
+	taxes := mapTaxInputs(input.Taxes)
 	if err := item.Update(input.Quantity, input.UnitPrice, taxes); err != nil {
 		return nil, err
 	}

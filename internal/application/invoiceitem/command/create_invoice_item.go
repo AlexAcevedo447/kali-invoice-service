@@ -28,10 +28,7 @@ func NewCreateInvoiceItemCommand(repo ports.InvoiceItemCreator) *CreateInvoiceIt
 }
 
 func (c *CreateInvoiceItemCommand) Execute(input CreateInvoiceItemInput) (*invoiceitem.InvoiceItem, error) {
-	taxes := make([]invoiceitem.TaxInput, 0, len(input.Taxes))
-	for _, t := range input.Taxes {
-		taxes = append(taxes, invoiceitem.TaxInput{Code: t.Code, Kind: t.Kind, Rate: t.Rate})
-	}
+	taxes := mapTaxInputs(input.Taxes)
 	item, err := invoiceitem.New(input.InvoiceID, input.ItemID, input.Quantity, input.UnitPrice, taxes)
 	if err != nil {
 		return nil, err

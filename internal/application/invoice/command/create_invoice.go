@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/invoice"
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/invoiceitem"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/ports"
 )
 
@@ -48,10 +47,7 @@ func (c *CreateInvoiceCommand) Execute(input CreateInvoiceInput) (*invoice.Invoi
 
 	itemInputs := make([]invoice.ItemInput, 0, len(input.Items))
 	for _, it := range input.Items {
-		taxes := make([]invoiceitem.TaxInput, 0, len(it.Taxes))
-		for _, tax := range it.Taxes {
-			taxes = append(taxes, invoiceitem.TaxInput{Code: tax.Code, Kind: tax.Kind, Rate: tax.Rate})
-		}
+		taxes := mapInvoiceItemTaxes(it.Taxes)
 		itemInputs = append(itemInputs, invoice.ItemInput{
 			ItemID:    it.ItemID,
 			Quantity:  it.Quantity,
