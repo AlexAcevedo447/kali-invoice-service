@@ -89,7 +89,6 @@ func (p *rabbitInvoiceStatusPublisher) PublishInvoiceStatusChanged(event ports.I
 			Body:         body,
 		},
 	)
-
 	if err != nil {
 		logger.Error("failed to publish invoice status event", logger.Fields{
 			"invoice_id":  event.InvoiceID,

@@ -2,6 +2,4 @@ package invoiceitem
 
 import "errors"
 
-var (
-	ErrNotFound = errors.New("invoice item not found")
-)
+var ErrNotFound = errors.New("invoice item not found")
