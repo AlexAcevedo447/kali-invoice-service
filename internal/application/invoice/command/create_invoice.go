@@ -15,9 +15,9 @@ type CreateInvoiceInput struct {
 }
 
 type InvoiceItemInput struct {
-	ItemID    string  `json:"item_id"`
-	Quantity  float64 `json:"quantity"`
-	UnitPrice float64 `json:"unit_price"`
+	ItemID    string                `json:"item_id"`
+	Quantity  float64               `json:"quantity"`
+	UnitPrice float64               `json:"unit_price"`
 	Taxes     []InvoiceItemTaxInput `json:"taxes,omitempty"`
 }
 

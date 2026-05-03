@@ -6,10 +6,10 @@ import (
 )
 
 type CreateInvoiceItemInput struct {
-	InvoiceID string  `json:"invoice_id"`
-	ItemID    string  `json:"item_id"`
-	Quantity  float64 `json:"quantity"`
-	UnitPrice float64 `json:"unit_price"`
+	InvoiceID string                `json:"invoice_id"`
+	ItemID    string                `json:"item_id"`
+	Quantity  float64               `json:"quantity"`
+	UnitPrice float64               `json:"unit_price"`
 	Taxes     []InvoiceItemTaxInput `json:"taxes,omitempty"`
 }
 

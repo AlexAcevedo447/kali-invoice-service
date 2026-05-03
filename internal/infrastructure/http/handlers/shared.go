@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/invoice"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/invoiceitem"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -25,4 +26,42 @@ func mapDomainError(err error) error {
 	default:
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
+}
+
+func handleStatusTransition(
+	c *fiber.Ctx,
+	executeCmd func(string) error,
+	getByIDQuery func(string) (*invoice.Invoice, error),
+	incrementMetric func(),
+	errorMsg string,
+	successMsg string,
+	retrieveErrorMsg string,
+) error {
+	id := c.Params("id")
+	if err := validateUUID(id); err != nil {
+		return err
+	}
+
+	if err := executeCmd(id); err != nil {
+		logger.Error(errorMsg, logger.Fields{
+			"invoice_id": id,
+			"error":      err.Error(),
+		})
+		return mapDomainError(err)
+	}
+
+	incrementMetric()
+	logger.Info(successMsg, logger.Fields{
+		"invoice_id": id,
+	})
+
+	inv, err := getByIDQuery(id)
+	if err != nil {
+		logger.Error(retrieveErrorMsg, logger.Fields{
+			"invoice_id": id,
+			"error":      err.Error(),
+		})
+		return mapDomainError(err)
+	}
+	return c.JSON(inv)
 }

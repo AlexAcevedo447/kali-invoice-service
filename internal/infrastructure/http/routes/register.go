@@ -26,7 +26,7 @@ func RegisterDomainRoutes(
 ) {
 	invoiceRoutes.Register(router, createH, updateH, getAllH, getByIDH, payH, cancelH, idempotencyRepo)
 	invoiceItemRoutes.Register(router, createItemH, getAllItemH, getItemByIDH, updateItemH, deleteItemH, idempotencyRepo)
-	
+
 	// Metrics endpoint for observability
 	metricsHandler := handlers.NewMetricsHandler()
 	router.Get("/metrics", metricsHandler.Handle)

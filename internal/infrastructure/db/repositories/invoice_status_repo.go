@@ -27,7 +27,7 @@ func (r *invoiceStatusRepo) UpdateStatus(id string, apply func(*invoice.Invoice)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	m := new(models.InvoiceModel)
 	err = tx.NewSelect().

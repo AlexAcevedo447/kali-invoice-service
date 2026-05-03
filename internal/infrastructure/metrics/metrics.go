@@ -6,17 +6,17 @@ import (
 
 // Metrics holds counters for invoice operations.
 type Metrics struct {
-	mu                     sync.RWMutex
-	invoicesCreated        int64
-	invoicesPaid           int64
-	invoicesCanceled       int64
-	invoiceItemsCreated    int64
-	invoiceItemsUpdated    int64
-	invoiceItemsDeleted    int64
-	rabbitEventsPublished  int64
-	rabbitEventsFailed     int64
-	idempotencyHits        int64
-	idempotencyMisses      int64
+	mu                    sync.RWMutex
+	invoicesCreated       int64
+	invoicesPaid          int64
+	invoicesCanceled      int64
+	invoiceItemsCreated   int64
+	invoiceItemsUpdated   int64
+	invoiceItemsDeleted   int64
+	rabbitEventsPublished int64
+	rabbitEventsFailed    int64
+	idempotencyHits       int64
+	idempotencyMisses     int64
 }
 
 var globalMetrics = &Metrics{}
@@ -97,15 +97,15 @@ func GetSnapshot() map[string]int64 {
 	defer globalMetrics.mu.RUnlock()
 
 	return map[string]int64{
-		"invoices_created":         globalMetrics.invoicesCreated,
-		"invoices_paid":            globalMetrics.invoicesPaid,
-		"invoices_canceled":        globalMetrics.invoicesCanceled,
-		"invoice_items_created":    globalMetrics.invoiceItemsCreated,
-		"invoice_items_updated":    globalMetrics.invoiceItemsUpdated,
-		"invoice_items_deleted":    globalMetrics.invoiceItemsDeleted,
-		"rabbit_events_published":  globalMetrics.rabbitEventsPublished,
-		"rabbit_events_failed":     globalMetrics.rabbitEventsFailed,
-		"idempotency_hits":         globalMetrics.idempotencyHits,
-		"idempotency_misses":       globalMetrics.idempotencyMisses,
+		"invoices_created":        globalMetrics.invoicesCreated,
+		"invoices_paid":           globalMetrics.invoicesPaid,
+		"invoices_canceled":       globalMetrics.invoicesCanceled,
+		"invoice_items_created":   globalMetrics.invoiceItemsCreated,
+		"invoice_items_updated":   globalMetrics.invoiceItemsUpdated,
+		"invoice_items_deleted":   globalMetrics.invoiceItemsDeleted,
+		"rabbit_events_published": globalMetrics.rabbitEventsPublished,
+		"rabbit_events_failed":    globalMetrics.rabbitEventsFailed,
+		"idempotency_hits":        globalMetrics.idempotencyHits,
+		"idempotency_misses":      globalMetrics.idempotencyMisses,
 	}
 }

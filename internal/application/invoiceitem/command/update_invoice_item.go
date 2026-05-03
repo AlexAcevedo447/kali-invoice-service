@@ -6,8 +6,8 @@ import (
 )
 
 type UpdateInvoiceItemInput struct {
-	Quantity  float64 `json:"quantity"`
-	UnitPrice float64 `json:"unit_price"`
+	Quantity  float64               `json:"quantity"`
+	UnitPrice float64               `json:"unit_price"`
 	Taxes     []InvoiceItemTaxInput `json:"taxes,omitempty"`
 }
 

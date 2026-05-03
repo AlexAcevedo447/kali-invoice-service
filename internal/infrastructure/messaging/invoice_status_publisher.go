@@ -92,10 +92,10 @@ func (p *rabbitInvoiceStatusPublisher) PublishInvoiceStatusChanged(event ports.I
 
 	if err != nil {
 		logger.Error("failed to publish invoice status event", logger.Fields{
-			"invoice_id":   event.InvoiceID,
-			"prev_status":  event.PreviousStatus,
-			"new_status":   event.NewStatus,
-			"error":        err.Error(),
+			"invoice_id":  event.InvoiceID,
+			"prev_status": event.PreviousStatus,
+			"new_status":  event.NewStatus,
+			"error":       err.Error(),
 		})
 		metrics.IncrementRabbitEventsFailed()
 		return err
@@ -103,11 +103,11 @@ func (p *rabbitInvoiceStatusPublisher) PublishInvoiceStatusChanged(event ports.I
 
 	metrics.IncrementRabbitEventsPublished()
 	logger.Info("invoice status event published", logger.Fields{
-		"invoice_id":   event.InvoiceID,
-		"prev_status":  event.PreviousStatus,
-		"new_status":   event.NewStatus,
-		"exchange":     p.exchange,
-		"routing_key":  p.routingKey,
+		"invoice_id":  event.InvoiceID,
+		"prev_status": event.PreviousStatus,
+		"new_status":  event.NewStatus,
+		"exchange":    p.exchange,
+		"routing_key": p.routingKey,
 	})
 
 	return nil
