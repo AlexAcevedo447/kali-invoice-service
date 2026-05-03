@@ -2,18 +2,27 @@ package main
 
 import (
 	"log"
-	"net/http"
-	"os"
 
-	"github.com/AlexAcevedo447/kali-invoice-service/internal/wire"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/bootstrap/di"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/config"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/logger"
 )
 
 func main() {
-	router := wire.InitializeInvoiceAPI()
-	
+	cfg := config.Load()
 
-	port := os.Getenv("APP_PORT")
+	app, err := di.InitializeApp(cfg)
+	if err != nil {
+		log.Fatalf("failed to initialize app: %v", err)
+	}
 
-	log.Printf("API listening on port %s\n", port)
-    log.Fatal(http.ListenAndServe(":"+port, router))
+	addr := ":" + cfg.AppPort
+	logger.Info("server listening on "+addr, logger.Fields{
+		"port": cfg.AppPort,
+	})
+	if err := app.Listen(addr); err != nil {
+		logger.Fatal("server error", logger.Fields{
+			"error": err.Error(),
+		})
+	}
 }
