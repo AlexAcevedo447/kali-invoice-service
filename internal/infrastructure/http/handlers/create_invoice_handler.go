@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"time"
 
 	appcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/command"
@@ -42,10 +43,10 @@ func (h *CreateInvoiceHandler) Handle(c *fiber.Ctx) error {
 	// Validate item_id UUIDs
 	for i, item := range req.Items {
 		if item.ItemID == "" {
-			return fiber.NewError(fiber.StatusBadRequest, "items["+string(rune(i))+"].item_id is required")
+			return fiber.NewError(fiber.StatusBadRequest, "items["+strconv.Itoa(i)+"].item_id is required")
 		}
 		if err := validateUUID(item.ItemID); err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "items["+string(rune(i))+"].item_id must be a valid UUID")
+			return fiber.NewError(fiber.StatusBadRequest, "items["+strconv.Itoa(i)+"].item_id must be a valid UUID")
 		}
 	}
 
