@@ -3,9 +3,10 @@
 # ============================
 
 APP_NAME=kali-invoice-service
-DEV_COMPOSE=docker compose -f docker-compose.dev.yml
-PROD_COMPOSE=docker compose -f docker-compose.prod.yml
-DEV_CONTAINER=kali-invoice-dev
+DEV_COMPOSE=docker compose -f docker-compose.dev.yml --env-file .env.dev
+PROD_COMPOSE=docker compose -f docker-compose.prod.yml --env-file .env.prod
+DEV_CONTAINER=kali-invoice-api-dev
+PROD_CONTAINER=kali-invoice-api
 
 GOBIN=$(shell go env GOPATH)/bin
 LINTER=$(GOBIN)/golangci-lint
@@ -16,26 +17,33 @@ LINTER=$(GOBIN)/golangci-lint
 
 help:
 	@echo ""
-	@echo "===== COMANDOS DISPONIBLES ====="
-	@echo " Desarrollo Local:"
+	@echo "===== KALI INVOICE SERVICE - COMANDOS DISPONIBLES ====="
+	@echo ""
+	@echo "🔧 DESARROLLO LOCAL:"
 	@echo "   make run                - Ejecuta la app (go run)"
 	@echo "   make test-local         - Tests locales"
 	@echo "   make lint-local         - Linter local"
 	@echo "   make fmt                - Formatea código"
 	@echo "   make tidy               - go mod tidy"
-	@echo "   make tools              - Instala herramientas (golangci-lint)"
-	@echo "   make check              - fmt + tidy + lint + test"
+	@echo "   make tools              - Instala herramientas (golangci-lint, wire)"
+	@echo "   make check              - fmt + tidy + lint + test (local)"
+	@echo "   make wire               - Genera wire_gen.go (dependency injection)"
 	@echo ""
-	@echo " Con Docker:"
-	@echo "   make dev                - Inicia entorno dev"
-	@echo "   make dev-down           - Apaga entorno dev"
-	@echo "   make prod               - Inicia entorno prod"
-	@echo "   make prod-up            - Prod en segundo plano"
+	@echo "🐳 DESARROLLO CON DOCKER:"
+	@echo "   make dev                - Inicia dev (docker-compose up)"
+	@echo "   make dev-logs           - Ver logs en vivo del dev"
+	@echo "   make dev-test           - Ejecuta tests en el container dev"
+	@echo "   make dev-lint           - Linter en el container dev"
+	@echo "   make dev-lint-fix       - Linter + autofix en dev"
+	@echo "   make dev-down           - Apaga dev (docker-compose down)"
+	@echo "   make dev-clean          - Elimina containers y volúmenes de dev"
+	@echo ""
+	@echo "🚀 PRODUCCIÓN CON DOCKER:"
+	@echo "   make prod               - Inicia prod (docker-compose up -d)"
+	@echo "   make prod-logs          - Ver logs en vivo de prod"
 	@echo "   make prod-down          - Apaga prod"
-	@echo "   make prod-build         - Build optimizado CI/CD"
-	@echo "   make test               - Tests dentro del contenedor"
-	@echo "   make lint               - Linter dentro del contenedor"
-	@echo "   make lint-fix           - Linter + autofix en contenedor"
+	@echo "   make prod-clean         - Elimina containers y volúmenes de prod"
+	@echo "   make prod-build         - Build optimizado para CI/CD"
 	@echo ""
 
 # ============================
@@ -47,7 +55,7 @@ run:
 
 test-local:
 	@echo "Running local tests..."
-	go test ./... -cover
+	go test ./... -v -cover
 
 fmt:
 	go fmt ./...
@@ -58,52 +66,65 @@ tidy:
 tools:
 	@echo "Installing tools..."
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+	@go install github.com/google/wire/cmd/wire@latest
 
 lint-local: tools
 	@echo "Running golangci-lint locally..."
 	@$(LINTER) run
 
+wire:
+	@echo "Generating wire_gen.go..."
+	@go run github.com/google/wire/cmd/wire@latest ./internal/bootstrap/di
+
 check: fmt tidy lint-local test-local
+	@echo "✅ Local check passed!"
 
 # ============================
 # Desarrollo con Docker
 # ============================
 
 dev:
-	$(DEV_COMPOSE) up
+	$(DEV_COMPOSE) up --build
+
+dev-logs:
+	$(DEV_COMPOSE) logs -f api
+
+dev-test:
+	docker exec -it $(DEV_CONTAINER) go test ./... -v
+
+dev-lint:
+	docker exec -it $(DEV_CONTAINER) golangci-lint run
+
+dev-lint-fix:
+	docker exec -it $(DEV_CONTAINER) golangci-lint run --fix
 
 dev-down:
 	$(DEV_COMPOSE) down
+
+dev-clean:
+	$(DEV_COMPOSE) down -v --rmi all
 
 # ============================
 # Producción (Docker)
 # ============================
 
 prod:
-	$(PROD_COMPOSE) up
+	$(PROD_COMPOSE) up -d --build
 
-prod-up:
-	$(PROD_COMPOSE) up -d
+prod-logs:
+	$(PROD_COMPOSE) logs -f api
 
 prod-down:
 	$(PROD_COMPOSE) down
 
+prod-clean:
+	$(PROD_COMPOSE) down -v --rmi all
+
 prod-build:
-	docker build --target prod -t $(APP_NAME) .
+	docker build --target prod -t $(APP_NAME):latest -t $(APP_NAME):$$(date +%s) .
 
 # ============================
-# Tests en Contenedor Dev
+# Utilidades
 # ============================
 
-test:
-	docker exec -it $(DEV_CONTAINER) go test ./...
-
-# ============================
-# Linter en Contenedor Dev
-# ============================
-
-lint:
-	docker exec -it $(DEV_CONTAINER) golangci-lint run
-
-lint-fix:
-	docker exec -it $(DEV_CONTAINER) golangci-lint run --fix
+.PHONY: help run test-local fmt tidy tools check wire lint-local dev dev-logs dev-test dev-lint dev-lint-fix dev-down dev-clean prod prod-logs prod-down prod-clean prod-build

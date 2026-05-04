@@ -12,6 +12,6 @@ type IdempotencyModel struct {
 	Key         string    `bun:"key,pk"`
 	Fingerprint string    `bun:"fingerprint,notnull"`
 	StatusCode  int       `bun:"status_code,notnull"`
-	Body        []byte    `bun:"body,notnull"`
+	Body        []byte    `bun:"body"`
 	CreatedAt   time.Time `bun:"created_at,notnull"`
 }

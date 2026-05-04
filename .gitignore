@@ -34,11 +34,15 @@ go.sum
 go.work.sum
 
 # ====================================
-# Ambiente local
+# Ambiente local (NO TRACKEAR SECRETOS)
 # ====================================
 .env
 .env.local
 .env.*.local
+.env.dev.local
+.env.prod.local
+.env.prod
+.env.dev
 
 # ====================================
 # Dependencias externas (air, herramientas)
@@ -58,3 +62,6 @@ coverage/
 # ====================================
 .docker/
 kali_invoice_data/
+kali-dev-db-data/
+kali-prod-db-data/
+kali-prod-rabbitmq-data/

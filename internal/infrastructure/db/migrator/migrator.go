@@ -140,6 +140,11 @@ func (m *Migrator) getMigrations() []Migration {
 			Name:    "create_idempotency_records_table",
 			Up:      m.migrationV004CreateIdempotencyTable,
 		},
+		{
+			Version: 5,
+			Name:    "alter_idempotency_records_body_nullable",
+			Up:      m.migrationV005AlterIdempotencyBodyNullable,
+		},
 	}
 }
 
@@ -164,5 +169,11 @@ func (m *Migrator) migrationV003CreateInvoiceItemTaxesTable(ctx context.Context,
 // migrationV004CreateIdempotencyTable creates the idempotency_records table.
 func (m *Migrator) migrationV004CreateIdempotencyTable(ctx context.Context, db *bun.DB) error {
 	_, err := db.NewCreateTable().Model((*models.IdempotencyModel)(nil)).IfNotExists().Exec(ctx)
+	return err
+}
+
+// migrationV005AlterIdempotencyBodyNullable makes the body column nullable.
+func (m *Migrator) migrationV005AlterIdempotencyBodyNullable(ctx context.Context, db *bun.DB) error {
+	_, err := db.Exec("ALTER TABLE idempotency_records ALTER COLUMN body DROP NOT NULL")
 	return err
 }
