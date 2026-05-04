@@ -70,13 +70,12 @@ func (m *Migrator) RunVersioned() error {
 
 	// Get current version
 	var currentVersion int
-	if err := m.db.NewSelect().Model((*SchemaVersion)(nil)).Order("version DESC").Limit(1).Scan(ctx, &currentVersion); err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			currentVersion = 0
-		} else {
-			logger.Error("failed to get current schema version", logger.Fields{"error": err.Error()})
-			return err
-		}
+	if err := m.db.NewSelect().
+		TableExpr("schema_versions").
+		ColumnExpr("COALESCE(MAX(version), 0)").
+		Scan(ctx, &currentVersion); err != nil {
+		logger.Error("failed to get current schema version", logger.Fields{"error": err.Error()})
+		return err
 	}
 
 	// Apply pending migrations
