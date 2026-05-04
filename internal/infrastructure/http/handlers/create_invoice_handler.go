@@ -32,8 +32,21 @@ func (h *CreateInvoiceHandler) Handle(c *fiber.Ctx) error {
 	if req.CustomerID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "customer_id is required")
 	}
+	if err := validateUUID(req.CustomerID); err != nil {
+		return err
+	}
 	if len(req.Items) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "items are required")
+	}
+
+	// Validate item_id UUIDs
+	for i, item := range req.Items {
+		if item.ItemID == "" {
+			return fiber.NewError(fiber.StatusBadRequest, "items["+string(rune(i))+"].item_id is required")
+		}
+		if err := validateUUID(item.ItemID); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "items["+string(rune(i))+"].item_id must be a valid UUID")
+		}
 	}
 
 	inv, err := h.createCmd.Execute(appcommand.CreateInvoiceInput{

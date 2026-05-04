@@ -31,6 +31,12 @@ func (h *UpdateInvoiceHandler) Handle(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 
+	if req.CustomerID != nil && *req.CustomerID != "" {
+		if err := validateUUID(*req.CustomerID); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "customer_id must be a valid UUID")
+		}
+	}
+
 	inv, err := h.updateCmd.Execute(id, appcommand.UpdateInvoiceInput{
 		CustomerID: req.CustomerID,
 		DueDate:    req.DueDate,

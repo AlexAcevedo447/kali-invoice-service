@@ -20,6 +20,21 @@ func (h *CreateInvoiceItemHandler) Handle(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
+
+	if req.InvoiceID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "invoice_id is required")
+	}
+	if err := validateUUID(req.InvoiceID); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invoice_id must be a valid UUID")
+	}
+
+	if req.ItemID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "item_id is required")
+	}
+	if err := validateUUID(req.ItemID); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "item_id must be a valid UUID")
+	}
+
 	item, err := h.createCmd.Execute(req)
 	if err != nil {
 		logger.Error("failed to create invoice item", logger.Fields{
