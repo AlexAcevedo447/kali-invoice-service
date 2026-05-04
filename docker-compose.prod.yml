@@ -1,33 +1,129 @@
-
 services:
+  # ========== API SERVICE (PROD) ==========
   api:
     build:
       context: .
-      target: prod # Usa la etapa prod del Dockerfile
-    container_name: kali-invoice-prod
-    env_file: .env
+      target: prod
+      dockerfile: Dockerfile
+    container_name: kali-invoice-api
+    image: kali-invoice:prod
+    env_file: .env.prod
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - RABBITMQ_URL=amqp://kali_user:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
     ports:
-      - "${APP_PORT}:${APP_PORT}"
-    restart: always
+      - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     depends_on:
       db:
         condition: service_healthy
-
-  db:
-    image: postgres:16
-    container_name: kali-invoice-db-prod
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - kali-prod-net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=api,env=prod"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${APP_PORT:-8080}/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ========== DATABASE (PROD) ==========
+  db:
+    image: postgres:16-alpine
+    container_name: kali-invoice-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-kali_prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me}
+      POSTGRES_DB: ${DB_NAME:-kali_invoices}
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c effective_cache_size=1GB"
+    volumes:
+      - kali-prod-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-kali_prod} -d ${DB_NAME:-kali_invoices}"]
+      interval: 15s
       timeout: 5s
       retries: 5
-    volumes:
-      - kali_invoice_data:/var/lib/postgresql/data
+      start_period: 15s
+    networks:
+      - kali-prod-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=db,env=prod"
+
+  # ========== RABBITMQ (OPTIONAL FOR PROD) ==========
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    container_name: kali-invoice-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: kali_user
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change_me}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - kali-prod-rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - kali-prod-net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=rabbitmq,env=prod"
+
+networks:
+  kali-prod-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.26.0.0/16
 
 volumes:
-  kali_invoice_data:
+  kali-prod-db-data:
+    driver: local
+  kali-prod-rabbitmq-data:
+    driver: local

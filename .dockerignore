@@ -1,0 +1,56 @@
+# Git
+.git/
+.gitignore
+.github/
+
+# CI/CD
+.gitlab-ci.yml
+.github/workflows/
+.circleci/
+
+# Documentation
+*.md
+docs/
+README.md
+LICENSE
+
+# Build artifacts
+bin/
+dist/
+tmp/
+*.out
+*.test
+coverage/
+coverage.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# Environment files (use build args instead)
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+.docker/
+
+# Node (si usarías frontend aquí)
+node_modules/
+npm-debug.log
+
+# Logs
+logs/
+*.log
+
+# Depuración local
+.air.toml
+Makefile
