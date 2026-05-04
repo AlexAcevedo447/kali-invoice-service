@@ -65,7 +65,7 @@ COPY . .
 RUN go mod download
 
 # Compilar sin optimizaciones para que Delve pueda mapear el código
-RUN CGO_ENABLED=0 go build -gcflags="all=-N -l" -o /tmp/main ./cmd/api
+RUN CGO_ENABLED=0 go build -mod=mod -gcflags="all=-N -l" -o /tmp/main ./cmd/api
 
 EXPOSE 8080
 EXPOSE 40000
