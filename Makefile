@@ -119,7 +119,22 @@ dev-clean:
 debug:
 	@echo "🐞 Bajando dev stack y levantando debug en puerto 40000..."
 	$(DEV_COMPOSE) down 2>/dev/null || true
-	$(DEBUG_COMPOSE) up --build
+	$(DEBUG_COMPOSE) down 2>/dev/null || true
+	$(DEBUG_COMPOSE) up --build -d
+	@echo "⏳ Esperando API en http://localhost:8080 ..."
+	@for i in $$(seq 1 30); do \
+		code=$$(curl -sS -o /dev/null -w "%{http_code}" "http://localhost:8080/api/v1/invoices?page=1&page_size=1" || true); \
+		if [ "$$code" = "200" ]; then \
+			echo "✅ API lista en puerto 8080"; \
+			break; \
+		fi; \
+		if [ $$i -eq 30 ]; then \
+			echo "❌ Timeout esperando API en puerto 8080"; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done
+	@echo "✅ Debug arriba. Delve escuchando en 127.0.0.1:40000 (usa: make debug-logs)"
 
 debug-db:
 	@echo "🐞 Levantando solo la BD para debug local..."
@@ -131,7 +146,20 @@ debug-logs:
 debug-down:
 	$(DEBUG_COMPOSE) down
 	@echo "🔄 Restaurando dev stack..."
-	$(DEV_COMPOSE) start api 2>/dev/null || true
+	$(DEV_COMPOSE) up -d db api
+	@echo "⏳ Esperando API en http://localhost:8080 ..."
+	@for i in $$(seq 1 30); do \
+		code=$$(curl -sS -o /dev/null -w "%{http_code}" "http://localhost:8080/api/v1/invoices?page=1&page_size=1" || true); \
+		if [ "$$code" = "200" ]; then \
+			echo "✅ API lista en puerto 8080"; \
+			break; \
+		fi; \
+		if [ $$i -eq 30 ]; then \
+			echo "❌ Timeout esperando API en puerto 8080"; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done
 
 # ============================
 # Producción (Docker)

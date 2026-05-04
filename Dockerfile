@@ -70,7 +70,7 @@ RUN CGO_ENABLED=0 go build -mod=mod -gcflags="all=-N -l" -o /tmp/main ./cmd/api
 EXPOSE 8080
 EXPOSE 40000
 
-CMD ["/go/bin/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "/tmp/main"]
+    CMD ["/go/bin/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "--continue", "--accept-multiclient", "exec", "/tmp/main"]
 
 # ====================================
 # Stage 3: Builder (optimized for prod)
