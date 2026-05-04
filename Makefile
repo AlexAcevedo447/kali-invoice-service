@@ -4,6 +4,7 @@
 
 APP_NAME=kali-invoice-service
 DEV_COMPOSE=docker compose -f docker-compose.dev.yml --env-file .env.dev
+DEBUG_COMPOSE=docker compose -f docker-compose.debug.yml --env-file .env.dev
 PROD_COMPOSE=docker compose -f docker-compose.prod.yml --env-file .env.prod
 DEV_CONTAINER=kali-invoice-api-dev
 PROD_CONTAINER=kali-invoice-api
@@ -37,6 +38,13 @@ help:
 	@echo "   make dev-lint-fix       - Linter + autofix en dev"
 	@echo "   make dev-down           - Apaga dev (docker-compose down)"
 	@echo "   make dev-clean          - Elimina containers y volúmenes de dev"
+	@echo ""
+	@echo "🐞 DEBUG:"
+	@echo "   make debug              - Inicia stack de debug (Delve en puerto 40000)"
+	@echo "   make debug-db           - Levanta solo la BD para debug local"
+	@echo "   make debug-logs         - Ver logs del container de debug"
+	@echo "   make debug-down         - Apaga el stack de debug"
+	@echo "   (Luego conectar desde VS Code: Run & Debug → Go: Docker (Delve remoto))"
 	@echo ""
 	@echo "🚀 PRODUCCIÓN CON DOCKER:"
 	@echo "   make prod               - Inicia prod (docker-compose up -d)"
@@ -105,6 +113,24 @@ dev-clean:
 	$(DEV_COMPOSE) down -v --rmi all
 
 # ============================
+# Debug (Delve remoto)
+# ============================
+
+debug:
+	@echo "🐞 Iniciando stack de debug en puerto 40000..."
+	$(DEBUG_COMPOSE) up --build
+
+debug-db:
+	@echo "🐞 Levantando solo la BD para debug local..."
+	$(DEV_COMPOSE) up db -d
+
+debug-logs:
+	$(DEBUG_COMPOSE) logs -f api
+
+debug-down:
+	$(DEBUG_COMPOSE) down
+
+# ============================
 # Producción (Docker)
 # ============================
 
@@ -127,4 +153,4 @@ prod-build:
 # Utilidades
 # ============================
 
-.PHONY: help run test-local fmt tidy tools check wire lint-local dev dev-logs dev-test dev-lint dev-lint-fix dev-down dev-clean prod prod-logs prod-down prod-clean prod-build
+.PHONY: help run test-local fmt tidy tools check wire lint-local dev dev-logs dev-test dev-lint dev-lint-fix dev-down dev-clean debug debug-db debug-logs debug-down prod prod-logs prod-down prod-clean prod-build

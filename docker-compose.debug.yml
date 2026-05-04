@@ -1,0 +1,62 @@
+# docker-compose.debug.yml
+# Levanta la API con Delve para debug remoto desde VS Code.
+#
+# Uso:
+#   docker compose -f docker-compose.debug.yml --env-file .env.dev up
+#   Luego ejecutar la config "Go: Docker (Delve remoto)" en VS Code
+
+services:
+  api:
+    build:
+      context: .
+      target: debug
+      dockerfile: Dockerfile
+    container_name: kali-invoice-api-debug
+    env_file: .env.dev
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:${APP_PORT:-8080}"
+      - "127.0.0.1:40000:40000"   # Puerto de Delve (solo localhost)
+    volumes:
+      - .:/app
+      - /app/tmp
+      - /app/vendor
+    security_opt:
+      - apparmor:unconfined    # Necesario para Delve en Linux
+    cap_add:
+      - SYS_PTRACE             # Necesario para Delve
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - kali-dev-net
+
+  db:
+    image: postgres:16-alpine
+    container_name: kali-invoice-db-debug
+    environment:
+      POSTGRES_USER: ${DB_USER:-kali_dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kali_dev_pass_change_me}
+      POSTGRES_DB: ${DB_NAME:-kali_invoices_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - kali-debug-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-kali_dev} -d ${DB_NAME:-kali_invoices_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kali-dev-net
+
+networks:
+  kali-dev-net:
+    driver: bridge
+
+volumes:
+  kali-debug-db-data:

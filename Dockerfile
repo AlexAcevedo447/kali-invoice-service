@@ -51,6 +51,28 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 CMD ["air", "-c", ".air.toml"]
 
 # ====================================
+# Stage 2b: Debug (con Delve para VS Code)
+# ====================================
+FROM base AS debug
+LABEL stage=debug
+
+RUN apk add --no-cache git bash build-base curl
+
+# Instalar Delve
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+COPY . .
+RUN go mod download
+
+# Compilar sin optimizaciones para que Delve pueda mapear el código
+RUN CGO_ENABLED=0 go build -gcflags="all=-N -l" -o /tmp/main ./cmd/api
+
+EXPOSE 8080
+EXPOSE 40000
+
+CMD ["/root/go/bin/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "/tmp/main"]
+
+# ====================================
 # Stage 3: Builder (optimized for prod)
 # ====================================
 FROM base AS builder
