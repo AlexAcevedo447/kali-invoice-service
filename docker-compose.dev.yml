@@ -41,7 +41,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-kali_dev_pass_change_me}
       POSTGRES_DB: ${DB_NAME:-kali_invoices_dev}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     volumes:
       - kali-dev-db-data:/var/lib/postgresql/data
     healthcheck:
