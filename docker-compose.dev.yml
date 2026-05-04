@@ -14,7 +14,7 @@ services:
       - DB_SSLMODE=disable
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     ports:
-      - "${APP_PORT:-8080}:${APP_PORT:-8080}"
+      - "127.0.0.1:${APP_PORT:-8080}:${APP_PORT:-8080}"
     volumes:
       - .:/app
       - /app/tmp  # Excluir tmp del bind mount
@@ -41,7 +41,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-kali_dev_pass_change_me}
       POSTGRES_DB: ${DB_NAME:-kali_invoices_dev}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - kali-dev-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -61,17 +61,21 @@ services:
         labels: "service=db"
 
   # ========== OPTIONAL: ADMINER (DB GUI) ==========
+  # Levantar solo cuando se necesite: docker compose --profile tools up adminer
   adminer:
-    image: adminer:latest
+    image: adminer:4.8.1
     container_name: kali-invoice-adminer-dev
+    profiles:
+      - tools
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     depends_on:
       - db
     networks:
       - kali-dev-net
     environment:
       ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha
     restart: on-failure
 
 networks:
