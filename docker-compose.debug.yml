@@ -1,9 +1,10 @@
 # docker-compose.debug.yml
 # Levanta la API con Delve para debug remoto desde VS Code.
 #
-# Uso:
-#   docker compose -f docker-compose.debug.yml --env-file .env.dev up
-#   Luego ejecutar la config "Go: Docker (Delve remoto)" en VS Code
+# IMPORTANTE: Detener el stack de dev antes de levantar este:
+#   make dev-down
+#   make debug
+# Luego conectar desde VS Code: Run & Debug → Go: Docker (Delve remoto)
 
 services:
   api:
@@ -11,7 +12,8 @@ services:
       context: .
       target: debug
       dockerfile: Dockerfile
-    container_name: kali-invoice-api-debug
+    # Mismo nombre que dev para que nginx lo encuentre por hostname
+    container_name: kali-invoice-api-dev
     env_file: .env.dev
     environment:
       - DB_HOST=db

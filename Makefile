@@ -117,7 +117,8 @@ dev-clean:
 # ============================
 
 debug:
-	@echo "🐞 Iniciando stack de debug en puerto 40000..."
+	@echo "🐞 Bajando dev stack y levantando debug en puerto 40000..."
+	$(DEV_COMPOSE) down 2>/dev/null || true
 	$(DEBUG_COMPOSE) up --build
 
 debug-db:
@@ -129,6 +130,8 @@ debug-logs:
 
 debug-down:
 	$(DEBUG_COMPOSE) down
+	@echo "🔄 Restaurando dev stack..."
+	$(DEV_COMPOSE) start api 2>/dev/null || true
 
 # ============================
 # Producción (Docker)
