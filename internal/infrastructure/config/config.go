@@ -33,21 +33,21 @@ type RabbitMQConfig struct {
 func Load() *Config {
 	_ = godotenv.Load()
 
-	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
-	if err != nil {
-		log.Fatalf("invalid DB_PORT: %v", err)
-	}
+	       dbPort, err := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
+	       if err != nil {
+		       log.Fatalf("invalid POSTGRES_PORT: %v", err)
+	       }
 
-	return &Config{
-		AppPort: os.Getenv("APP_PORT"),
-		Database: DatabaseConfig{
-			Host:     os.Getenv("DB_HOST"),
-			Port:     dbPort,
-			User:     os.Getenv("DB_USER"),
-			Password: os.Getenv("DB_PASSWORD"),
-			DBName:   os.Getenv("DB_NAME"),
-			SSLMode:  os.Getenv("DB_SSLMODE"),
-		},
+	       return &Config{
+		       AppPort: os.Getenv("APP_PORT"),
+		       Database: DatabaseConfig{
+			       Host:     os.Getenv("POSTGRES_HOST"),
+			       Port:     dbPort,
+			       User:     os.Getenv("POSTGRES_USER"),
+			       Password: os.Getenv("POSTGRES_PASSWORD"),
+			       DBName:   os.Getenv("POSTGRES_DB"),
+			       SSLMode:  os.Getenv("POSTGRES_SSLMODE"),
+		       },
 		RabbitMQ: RabbitMQConfig{
 			Enabled:    os.Getenv("RABBITMQ_ENABLED") == "true",
 			URL:        getEnvOrDefault("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
