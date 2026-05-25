@@ -1,6 +1,6 @@
 services:
   # ========== API SERVICE ==========
-  api:
+  invoice-api:
     build:
       context: .
       target: dev
@@ -72,10 +72,8 @@ services:
 
 networks:
   kali-dev-net:
+    name: kali-dev-net
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.25.0.0/16
 
 volumes:
   kali-dev-db-data:

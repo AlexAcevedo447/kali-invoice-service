@@ -1,0 +1,172 @@
+EVIDENCIA GA7-220501096-AA5-EV03
+Diseño y desarrollo de servicios web – proyecto
+
+Nombre del servicio:
+kali-invoice-service
+
+Descripción general:
+Servicio encargado de proveer las funcionalidades de facturación necesarias para la operación del sistema, incluyendo creación, consulta, listado y actualización de documentos de facturación.
+
+Base URL local esperada:
+http://localhost:8081
+
+Repositorio:
+Pendiente por completar
+
+Fecha de documentación:
+21 de mayo de 2026
+
+--------------------------------------------------
+Nombre del endpoint: Métricas del servicio de facturación
+Método HTTP: GET
+URL completa: http://localhost:8081/api/v1/metrics
+Ruta: /api/v1/metrics
+Descripción: Consultar métricas o estado operativo del servicio de facturación.
+Requiere autenticación: No
+Headers requeridos: No aplica
+Parámetros de ruta: No aplica
+Parámetros de query: No aplica
+Body JSON de ejemplo: No aplica
+Respuesta exitosa esperada:
+{
+  "invoices_created": 42,
+  "invoices_paid": 15,
+  "invoices_canceled": 3,
+  "invoice_items_created": 187,
+  "invoice_items_updated": 45,
+  "invoice_items_deleted": 12,
+  "rabbit_events_published": 18,
+  "rabbit_events_failed": 0,
+  "idempotency_hits": 5,
+  "idempotency_misses": 150
+}
+Respuesta de error esperada:
+{
+  "message": "Internal Server Error"
+}
+Código HTTP esperado: 200
+Observaciones: No requiere autenticación ni headers especiales.
+--------------------------------------------------
+Nombre del endpoint: Crear factura
+Método HTTP: POST
+URL completa: http://localhost:8081/api/v1/invoices/
+Ruta: /api/v1/invoices/
+Descripción: Crear un nuevo documento de facturación.
+Requiere autenticación: No
+Headers requeridos:
+- Idempotency-Key: <clave única>
+Parámetros de ruta: No aplica
+Parámetros de query: No aplica
+Body JSON de ejemplo:
+{
+  "customer_id": "cust-123",
+  "issue_date": "2026-05-03T10:00:00Z",
+  "due_date": "2026-05-10T10:00:00Z",
+  "items": [
+    {
+      "item_id": "item-xyz789",
+      "quantity": 5,
+      "unit_price": 100.00,
+      "taxes": [
+        { "code": "IVA", "rate": 19, "kind": "DEBIT" },
+        { "code": "DESCUENTO", "rate": 5, "kind": "CREDIT" }
+      ]
+    }
+  ]
+}
+Respuesta exitosa esperada:
+{
+  "id": "inv-abc123",
+  "customer_id": "cust-123",
+  "issue_date": "2026-05-03T10:00:00Z",
+  "due_date": "2026-05-10T10:00:00Z",
+  "status": "PENDING",
+  "subtotal": 500.00,
+  "tax_total": 65.00,
+  "total": 565.00,
+  "items": [ ... ],
+  "created_at": "2026-05-03T10:00:00Z"
+}
+Respuesta de error esperada:
+{
+  "message": "customer_id is required"
+}
+Código HTTP esperado: 201
+Observaciones: Requiere header Idempotency-Key único por solicitud. No requiere autenticación.
+--------------------------------------------------
+Nombre del endpoint: Listar facturas
+Método HTTP: GET
+URL completa: http://localhost:8081/api/v1/invoices?page=1&page_size=20
+Ruta: /api/v1/invoices
+Descripción: Consultar el listado paginado de facturas o documentos de facturación.
+Requiere autenticación: No
+Headers requeridos: No aplica
+Parámetros de ruta: No aplica
+Parámetros de query:
+- page (opcional, default 1)
+- page_size (opcional, default 20, máximo 100)
+Body JSON de ejemplo: No aplica
+Respuesta exitosa esperada: [ { ...factura... }, ... ]
+Respuesta de error esperada:
+{
+  "message": "Internal Server Error"
+}
+Código HTTP esperado: 200
+Observaciones: No requiere autenticación ni headers especiales.
+--------------------------------------------------
+Nombre del endpoint: Obtener factura por ID
+Método HTTP: GET
+URL completa: http://localhost:8081/api/v1/invoices/{id}
+Ruta: /api/v1/invoices/{id}
+Descripción: Consultar el detalle de una factura específica.
+Requiere autenticación: No
+Headers requeridos: No aplica
+Parámetros de ruta:
+- id: UUID de la factura
+Parámetros de query: No aplica
+Body JSON de ejemplo: No aplica
+Respuesta exitosa esperada:
+{
+  "id": "inv-abc123",
+  "customer_id": "cust-123",
+  "issue_date": "2026-05-03T10:00:00Z",
+  "due_date": "2026-05-10T10:00:00Z",
+  "status": "PENDING",
+  "subtotal": 500.00,
+  "tax_total": 65.00,
+  "total": 565.00,
+  "items": [ ... ],
+  "created_at": "2026-05-03T10:00:00Z"
+}
+Respuesta de error esperada:
+{
+  "message": "invoice not found"
+}
+Código HTTP esperado: 200
+Observaciones: El parámetro id debe ser un UUID válido.
+--------------------------------------------------
+Nombre del endpoint: Marcar factura como pagada
+Método HTTP: PATCH
+URL completa: http://localhost:8081/api/v1/invoices/{id}/pay
+Ruta: /api/v1/invoices/{id}/pay
+Descripción: Actualizar el estado de una factura para marcarla como pagada.
+Requiere autenticación: No
+Headers requeridos:
+- Idempotency-Key: <clave única>
+Parámetros de ruta:
+- id: UUID de la factura
+Parámetros de query: No aplica
+Body JSON de ejemplo: No aplica
+Respuesta exitosa esperada:
+{
+  "id": "inv-abc123",
+  "status": "PAID",
+  ...otros campos de la factura...
+}
+Respuesta de error esperada:
+{
+  "message": "invoice is already paid"
+}
+Código HTTP esperado: 200
+Observaciones: Requiere header Idempotency-Key único por solicitud. No requiere autenticación.
+--------------------------------------------------
