@@ -33,6 +33,8 @@ func (r *invoiceListRepo) GetAll(p ports.Pagination) ([]*invoice.Invoice, error)
 		Relation("Items").
 		Relation("Items.Taxes").
 		Relation("Taxes").
+		// Orden estable: sin ORDER BY, Postgres puede repetir u omitir filas entre páginas.
+		OrderExpr("i.created_at DESC, i.id DESC").
 		Limit(p.PageSize).
 		Offset(offset).
 		Scan(context.Background())
@@ -45,4 +47,10 @@ func (r *invoiceListRepo) GetAll(p ports.Pagination) ([]*invoice.Invoice, error)
 		result = append(result, mappers.ModelToInvoice(&ms[i]))
 	}
 	return result, nil
+}
+
+func (r *invoiceListRepo) Count() (int, error) {
+	return r.db.NewSelect().
+		Model((*models.InvoiceModel)(nil)).
+		Count(context.Background())
 }

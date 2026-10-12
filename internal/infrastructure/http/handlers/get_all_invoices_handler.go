@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	appquery "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/query"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/ports"
 	"github.com/gofiber/fiber/v2"
@@ -27,5 +29,11 @@ func (h *GetAllInvoicesHandler) Handle(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
+	total, err := h.getAllQuery.Total()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	// El cuerpo sigue siendo el arreglo de facturas; el total viaja en cabecera.
+	c.Set("X-Total-Count", strconv.Itoa(total))
 	return c.JSON(invoices)
 }
