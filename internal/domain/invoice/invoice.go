@@ -86,7 +86,11 @@ func (i *Invoice) recalculateTotal() {
 }
 
 // UpdateHeader actualiza los datos principales de la factura.
+// Solo las facturas PENDING son editables: PAID y CANCELED quedan cerradas.
 func (i *Invoice) UpdateHeader(customerID string, dueDate time.Time) error {
+	if err := i.EnsureEditable(); err != nil {
+		return err
+	}
 	if customerID == "" {
 		return errors.New("customer_id is required")
 	}
@@ -96,6 +100,17 @@ func (i *Invoice) UpdateHeader(customerID string, dueDate time.Time) error {
 	i.CustomerID = customerID
 	i.DueDate = dueDate
 	i.UpdatedAt = time.Now()
+	return nil
+}
+
+// EnsureEditable devuelve error si la factura ya no admite cambios (PAID o CANCELED).
+func (i *Invoice) EnsureEditable() error {
+	switch i.Status {
+	case StatusPaid:
+		return ErrAlreadyPaid
+	case StatusCanceled:
+		return ErrAlreadyCanceled
+	}
 	return nil
 }
 
