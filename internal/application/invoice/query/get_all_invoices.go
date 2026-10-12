@@ -16,3 +16,8 @@ func NewGetAllInvoicesQuery(repo ports.InvoiceListReader) *GetAllInvoicesQuery {
 func (q *GetAllInvoicesQuery) Execute(p ports.Pagination) ([]*invoice.Invoice, error) {
 	return q.repo.GetAll(p)
 }
+
+// Total devuelve el número total de facturas registradas.
+func (q *GetAllInvoicesQuery) Total() (int, error) {
+	return q.repo.Count()
+}
