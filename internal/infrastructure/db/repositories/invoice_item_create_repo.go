@@ -24,6 +24,11 @@ func (r *invoiceItemCreateRepo) Save(item *invoiceitem.InvoiceItem) error {
 		return err
 	}
 
+	if err := ensureInvoiceEditableTx(ctx, tx, item.InvoiceID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
 	model := mappers.InvoiceItemToModel(item)
 	if _, err := tx.NewInsert().Model(model).Exec(ctx); err != nil {
 		_ = tx.Rollback()

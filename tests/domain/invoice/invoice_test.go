@@ -133,3 +133,43 @@ func TestCancel_AlreadyPaid(t *testing.T) {
 		t.Errorf("expected ErrAlreadyPaid, got %v", err)
 	}
 }
+
+// --- UpdateHeader (solo PENDING es editable) ---
+
+func TestUpdateHeader_PendingIsEditable(t *testing.T) {
+	inv := newTestInvoice(t)
+	due := inv.IssueDate.AddDate(0, 2, 0)
+
+	if err := inv.UpdateHeader("customer-2", due); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if inv.CustomerID != "customer-2" || !inv.DueDate.Equal(due) {
+		t.Errorf("expected header updated, got %s %v", inv.CustomerID, inv.DueDate)
+	}
+}
+
+func TestUpdateHeader_PaidIsNotEditable(t *testing.T) {
+	inv := newTestInvoice(t)
+	_ = inv.MarkAsPaid()
+
+	err := inv.UpdateHeader("customer-2", inv.IssueDate.AddDate(0, 2, 0))
+	if err != invoice.ErrAlreadyPaid {
+		t.Errorf("expected ErrAlreadyPaid, got %v", err)
+	}
+	if inv.CustomerID != "customer-1" {
+		t.Errorf("expected customer unchanged, got %s", inv.CustomerID)
+	}
+}
+
+func TestUpdateHeader_CanceledIsNotEditable(t *testing.T) {
+	inv := newTestInvoice(t)
+	_ = inv.Cancel()
+
+	err := inv.UpdateHeader("customer-2", inv.IssueDate.AddDate(0, 2, 0))
+	if err != invoice.ErrAlreadyCanceled {
+		t.Errorf("expected ErrAlreadyCanceled, got %v", err)
+	}
+	if inv.CustomerID != "customer-1" {
+		t.Errorf("expected customer unchanged, got %s", inv.CustomerID)
+	}
+}

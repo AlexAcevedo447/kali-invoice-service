@@ -34,6 +34,11 @@ func (r *invoiceItemDeleteRepo) DeleteByID(id string) error {
 		return err
 	}
 
+	if err := ensureInvoiceEditableTx(ctx, tx, invoiceID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
 	if _, err := tx.NewDelete().Table("invoice_item_taxes").Where("invoice_item_id = ?", id).Exec(ctx); err != nil {
 		_ = tx.Rollback()
 		return err
