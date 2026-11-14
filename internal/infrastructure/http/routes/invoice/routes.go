@@ -7,6 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// Resource es el recurso de permisos del dominio factura.
+const Resource = "invoices"
+
 // Register agrupa los endpoints del dominio factura.
 func Register(
 	router fiber.Router,
@@ -20,11 +23,15 @@ func Register(
 	auth fiber.Handler,
 ) {
 	// Toda operación de facturas exige un token válido; el tenant sale del token.
+	// Cada operación exige además su permiso (invoices/read o invoices/manage),
+	// antes de la idempotencia para que una petición denegada no reserve la clave.
+	read := middleware.RequirePermission(Resource, middleware.ActionRead)
+	manage := middleware.RequirePermission(Resource, middleware.ActionManage)
 	g := router.Group("/invoices", auth)
-	g.Post("/", middleware.Idempotency(idempotencyRepo), createH.Handle)
-	g.Put("/:id", middleware.Idempotency(idempotencyRepo), updateH.Handle)
-	g.Get("/", getAllH.Handle)
-	g.Get("/:id", getByIDH.Handle)
-	g.Patch("/:id/pay", middleware.Idempotency(idempotencyRepo), payH.Handle)
-	g.Patch("/:id/cancel", middleware.Idempotency(idempotencyRepo), cancelH.Handle)
+	g.Post("/", manage, middleware.Idempotency(idempotencyRepo), createH.Handle)
+	g.Put("/:id", manage, middleware.Idempotency(idempotencyRepo), updateH.Handle)
+	g.Get("/", read, getAllH.Handle)
+	g.Get("/:id", read, getByIDH.Handle)
+	g.Patch("/:id/pay", manage, middleware.Idempotency(idempotencyRepo), payH.Handle)
+	g.Patch("/:id/cancel", manage, middleware.Idempotency(idempotencyRepo), cancelH.Handle)
 }

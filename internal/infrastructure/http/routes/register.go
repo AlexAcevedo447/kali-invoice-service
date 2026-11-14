@@ -9,6 +9,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// Recursos de permisos de los catálogos del tenant.
+const (
+	ResourceCustomers = "customers"
+	ResourceProducts  = "products"
+)
+
 // RegisterDomainRoutes registra rutas agrupadas por dominio de negocio.
 func RegisterDomainRoutes(
 	router fiber.Router,
@@ -32,13 +38,15 @@ func RegisterDomainRoutes(
 
 	// Catálogos mínimos del tenant: el usuario elige clientes/productos legibles.
 	customers := router.Group("/customers", auth)
-	customers.Get("/", catalogH.ListCustomers)
-	customers.Post("/", middleware.Idempotency(idempotencyRepo), catalogH.CreateCustomer)
+	customers.Get("/", middleware.RequirePermission(ResourceCustomers, middleware.ActionRead), catalogH.ListCustomers)
+	customers.Post("/", middleware.RequirePermission(ResourceCustomers, middleware.ActionManage),
+		middleware.Idempotency(idempotencyRepo), catalogH.CreateCustomer)
 	products := router.Group("/products", auth)
-	products.Get("/", catalogH.ListProducts)
-	products.Post("/", middleware.Idempotency(idempotencyRepo), catalogH.CreateProduct)
+	products.Get("/", middleware.RequirePermission(ResourceProducts, middleware.ActionRead), catalogH.ListProducts)
+	products.Post("/", middleware.RequirePermission(ResourceProducts, middleware.ActionManage),
+		middleware.Idempotency(idempotencyRepo), catalogH.CreateProduct)
 
-	// Metrics endpoint for observability
+	// Metrics endpoint for observability (público: sin token ni permisos)
 	metricsHandler := handlers.NewMetricsHandler()
 	router.Get("/metrics", metricsHandler.Handle)
 }

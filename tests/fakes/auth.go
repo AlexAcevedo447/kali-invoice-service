@@ -55,12 +55,19 @@ func NewAuthWithStatus(t *testing.T, status *middleware.TenantStatusChecker) *Au
 	}
 }
 
-// Bearer devuelve el valor de la cabecera Authorization para el tenant dado.
+// Bearer devuelve el valor de la cabecera Authorization para el tenant dado
+// (usuario "user-<tenant>").
 func (a *Auth) Bearer(t *testing.T, tenantID string) string {
+	t.Helper()
+	return a.BearerFor(t, tenantID, "user-"+tenantID)
+}
+
+// BearerFor devuelve la cabecera Authorization para un usuario concreto del tenant.
+func (a *Auth) BearerFor(t *testing.T, tenantID, userID string) string {
 	t.Helper()
 	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"tid": tenantID,
-		"sub": "user-" + tenantID,
+		"sub": userID,
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
 	tok.Header["kid"] = testKID

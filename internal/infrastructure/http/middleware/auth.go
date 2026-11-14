@@ -113,8 +113,10 @@ type AuthConfig struct {
 	Keys     *JWKSKeySet
 	Issuer   string
 	Audience string
-	// TenantStatus, si se define, exige además que la empresa del token siga
-	// activa (bloquea tokens emitidos antes de una suspensión).
+	// TenantStatus exige además que la empresa del token siga activa (bloquea
+	// tokens emitidos antes de una suspensión) y aporta los permisos efectivos
+	// del usuario. En producción siempre se define; sin él no hay permisos y
+	// RequirePermission deniega todo (falla cerrado).
 	TenantStatus *TenantStatusChecker
 }
 
@@ -161,14 +163,22 @@ func Authenticate(cfg AuthConfig) fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "token is missing required claims")
 		}
 
-		if err := cfg.TenantStatus.Check(c.UserContext(), tenantID, header); err != nil {
+		perms, err := cfg.TenantStatus.Check(c.UserContext(), tenantID, userID, header)
+		if err != nil {
 			return err
 		}
 
 		c.Locals(localsTenantID, tenantID)
 		c.Locals(localsUserID, userID)
+		c.Locals(localsPermissions, perms)
 		return c.Next()
 	}
+}
+
+// UserID devuelve el usuario autenticado de la petición (vacío si no pasó por Authenticate).
+func UserID(c *fiber.Ctx) string {
+	v, _ := c.Locals(localsUserID).(string)
+	return v
 }
 
 // TenantID devuelve el tenant autenticado de la petición (vacío si no pasó por Authenticate).
