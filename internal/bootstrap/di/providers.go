@@ -98,10 +98,15 @@ func provideProductRepo(db *bun.DB) ports.ProductRepository {
 
 // provideAuthMiddleware valida los access tokens de kali-auth-context con su JWKS.
 func provideAuthMiddleware(cfg config.AuthConfig) fiber.Handler {
+	sessionURL := cfg.SessionURL
+	if sessionURL == "" {
+		sessionURL = middleware.SessionURLFromJWKS(cfg.JWKSURL)
+	}
 	return middleware.Authenticate(middleware.AuthConfig{
-		Keys:     middleware.NewJWKSKeySet(cfg.JWKSURL),
-		Issuer:   cfg.Issuer,
-		Audience: cfg.Audience,
+		Keys:         middleware.NewJWKSKeySet(cfg.JWKSURL),
+		Issuer:       cfg.Issuer,
+		Audience:     cfg.Audience,
+		TenantStatus: middleware.NewTenantStatusChecker(sessionURL, cfg.TenantStatusTTL),
 	})
 }
 

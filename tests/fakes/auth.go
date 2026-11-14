@@ -28,6 +28,13 @@ const testKID = "test-kid"
 
 func NewAuth(t *testing.T) *Auth {
 	t.Helper()
+	return NewAuthWithStatus(t, nil)
+}
+
+// NewAuthWithStatus igual que NewAuth, pero exigiendo además que la empresa del
+// token siga activa (comprobación contra un /auth/session simulado).
+func NewAuthWithStatus(t *testing.T, status *middleware.TenantStatusChecker) *Auth {
+	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("rsa key: %v", err)
@@ -43,7 +50,7 @@ func NewAuth(t *testing.T) *Auth {
 	}))
 	t.Cleanup(srv.Close)
 	return &Auth{
-		Handler: middleware.Authenticate(middleware.AuthConfig{Keys: middleware.NewJWKSKeySet(srv.URL)}),
+		Handler: middleware.Authenticate(middleware.AuthConfig{Keys: middleware.NewJWKSKeySet(srv.URL), TenantStatus: status}),
 		key:     key,
 	}
 }

@@ -113,6 +113,9 @@ type AuthConfig struct {
 	Keys     *JWKSKeySet
 	Issuer   string
 	Audience string
+	// TenantStatus, si se define, exige además que la empresa del token siga
+	// activa (bloquea tokens emitidos antes de una suspensión).
+	TenantStatus *TenantStatusChecker
 }
 
 // Authenticate valida el Bearer token (RS256, emisor, audiencia, vigencia) y
@@ -156,6 +159,10 @@ func Authenticate(cfg AuthConfig) fiber.Handler {
 		userID, _ := claims["sub"].(string)
 		if strings.TrimSpace(tenantID) == "" || strings.TrimSpace(userID) == "" {
 			return fiber.NewError(fiber.StatusUnauthorized, "token is missing required claims")
+		}
+
+		if err := cfg.TenantStatus.Check(c.UserContext(), tenantID, header); err != nil {
+			return err
 		}
 
 		c.Locals(localsTenantID, tenantID)

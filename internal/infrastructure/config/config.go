@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -20,6 +21,11 @@ type AuthConfig struct {
 	JWKSURL  string
 	Issuer   string
 	Audience string
+	// SessionURL: GET /api/v1/auth/session de kali-auth-context, para comprobar
+	// que la empresa del token sigue activa. Por defecto se deriva de JWKSURL.
+	SessionURL string
+	// TenantStatusTTL: cuánto se recuerda el estado de una empresa (0 = siempre consultar).
+	TenantStatusTTL time.Duration
 }
 
 type DatabaseConfig struct {
@@ -63,9 +69,11 @@ func Load() *Config {
 			RoutingKey: getEnvOrDefault("RABBITMQ_ROUTING_KEY", "invoice.status.changed"),
 		},
 		Auth: AuthConfig{
-			JWKSURL:  mustGetEnv("AUTH_JWKS_URL"),
-			Issuer:   os.Getenv("JWT_ISSUER"),
-			Audience: os.Getenv("JWT_AUDIENCE"),
+			JWKSURL:         mustGetEnv("AUTH_JWKS_URL"),
+			Issuer:          os.Getenv("JWT_ISSUER"),
+			Audience:        os.Getenv("JWT_AUDIENCE"),
+			SessionURL:      os.Getenv("AUTH_SESSION_URL"),
+			TenantStatusTTL: time.Duration(getEnvAsIntOrDefault("TENANT_STATUS_CACHE_SECONDS", 5)) * time.Second,
 		},
 	}
 }
@@ -83,6 +91,16 @@ func mustGetEnv(key string) string {
 func getEnvOrDefault(key, defaultVal string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return defaultVal
+}
+
+// getEnvAsIntOrDefault lee un entero; si falta o no es válido usa el valor por defecto.
+func getEnvAsIntOrDefault(key string, defaultVal int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			return n
+		}
 	}
 	return defaultVal
 }
