@@ -13,10 +13,13 @@ Servicio de backend especializado en **gestión de facturas** con arquitectura h
 - Idempotencia mediante Idempotency-Key con fingerprint y replay 24h
 - Migraciones versionadas con tracking en tabla `schema_versions`
 - Observabilidad estructurada: logs JSON + métricas de operaciones
+- **Validación del access token** emitido por `kali-auth-context` (RS256 vía JWKS, emisor, audiencia y vigencia)
+- **Aislamiento multi-tenant**: el tenant efectivo es el claim `tid` del token; facturas, líneas, clientes y productos solo se ven y modifican dentro de ese tenant
+- **Catálogos mínimos por tenant** (`/customers`, `/products`) para que el usuario elija entidades legibles en vez de escribir UUIDs
 
 ❌ **Delegado a servicio externo de seguridad:**
-- Autenticación (JWT, OAuth, etc.)
-- Autorización (RBAC, ABAC, etc.)
+- Emisión de tokens y gestión de usuarios/empresas (`kali-auth-context`)
+- Autorización por permisos (RBAC, ABAC, etc.)
 - Resiliencia de mensajes (Outbox pattern)
 - Rate limiting
 - Encriptación de datos sensibles
@@ -95,32 +98,23 @@ go mod download
 
 ### 2. Variables de Entorno
 
-Copiar `.env.example` a `.env`:
+Para Docker (recomendado), copiar `.env.example` a `.env.dev` (el `npm run stack:up` de
+`invoice-kali-front` lo hace solo si falta, sin sobrescribir):
 
 ```bash
-cp .env.example .env
+cp .env.example .env.dev
 ```
 
-Editar `.env` con tu configuración:
+El ejemplo trae valores de desarrollo local coherentes con `kali-auth-context` y el front:
+API en 8080, Postgres `db:5432` (usuario/base de ejemplo, solo locales), JWKS de auth en
+`http://host.docker.internal:18080/.well-known/jwks.json`, `JWT_ISSUER=http://localhost:8080`,
+`JWT_AUDIENCE=account` y RabbitMQ desactivado. `config.go` lee `POSTGRES_*` (no `DB_*`).
 
-```env
-# App
-APP_PORT=3000
+Para ejecutar con `go run` en el host, usar `.env` con `POSTGRES_HOST=localhost` y
+`AUTH_JWKS_URL=http://localhost:18080/.well-known/jwks.json`.
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=invoices_db
-DB_SSLMODE=disable
-
-# RabbitMQ (Opcional)
-RABBITMQ_ENABLED=true
-RABBITMQ_URL=amqp://guest:guest@localhost:5672/
-RABBITMQ_EXCHANGE=invoice.events
-RABBITMQ_ROUTING_KEY=invoice.status.changed
-```
+Migraciones: se aplican solas al arrancar la API (versionadas, idempotentes; ver
+`internal/infrastructure/db/migrator`).
 
 ### 3. Iniciar Stack Local (Docker)
 
@@ -128,9 +122,34 @@ RABBITMQ_ROUTING_KEY=invoice.status.changed
 make dev
 ```
 
-Esto levanta:
-- **PostgreSQL** en `localhost:5432`
-- **RabbitMQ** admin en `http://localhost:15672` (guest/guest)
+Esto levanta la API (`kali-invoice-api-dev`, hot-reload con air) en `localhost:8080` y
+**PostgreSQL** (`kali-invoice-db-dev`) en `localhost:5432`. RabbitMQ no forma parte del
+stack de desarrollo (`RABBITMQ_ENABLED=false`).
+
+#### Qué archivo Compose usa cada comando
+
+| Comando | Archivo Compose | Env | Servicios / contenedores | Datos |
+|---|---|---|---|---|
+| `make dev` | `docker-compose.dev.yml` | `.env.dev` | `invoice-api` → `kali-invoice-api-dev`, `db` → `kali-invoice-db-dev` | volumen `kali-invoice-service_kali-dev-db-data` |
+| `make dev-up` | `docker-compose.dev.yml` | `.env.dev` | igual que `make dev`, en segundo plano, y espera a `/api/v1/metrics` | volumen de dev |
+| `make dev-logs` | `docker-compose.dev.yml` | `.env.dev` | logs de `invoice-api` | — |
+| `make dev-down` | `docker-compose.dev.yml` | `.env.dev` | detiene y elimina contenedores; **conserva** el volumen | conserva |
+| `make dev-clean` | `docker-compose.dev.yml` | `.env.dev` | `down -v --rmi all` | ⚠️ **borra el volumen de dev** |
+| `make debug` | quita solo los contenedores `invoice-api` y `db` de dev (`stop` + `rm`, sin volúmenes) y levanta `docker-compose.debug.yml` | `.env.dev` (+ `DB_USER`/`DB_PASSWORD`/`DB_NAME` opcionales) | `invoice-api` → `kali-invoice-api-debug`, `db` → `kali-invoice-db-debug`, red `kali-dev-net`, Delve en `127.0.0.1:40000`; espera a `/api/v1/metrics` | volumen `kali-invoice-service_kali-debug-db-data` (distinto de dev) |
+| `make debug-db` | `docker-compose.dev.yml` | `.env.dev` | solo `db` de dev | volumen de dev |
+| `make debug-logs` | `docker-compose.debug.yml` | `.env.dev` | logs de `invoice-api` (debug) | — |
+| `make debug-down` | quita los contenedores de debug (`stop` + `rm`) y `docker-compose.dev.yml up -d db invoice-api` | `.env.dev` | restaura dev y espera a `/api/v1/metrics` | conserva ambos volúmenes |
+| `make prod` / `prod-down` | `docker-compose.prod.yml` | `.env.prod` | `kali-invoice-api`, `kali-invoice-db`, `kali-invoice-rabbitmq` | volúmenes `kali-prod-*` |
+| `make prod-clean` | `docker-compose.prod.yml` | `.env.prod` | `down -v --rmi all` | ⚠️ **borra los volúmenes de prod** |
+| `npm run stack:up` (repo `invoice-kali-front`) | `docker-compose.dev.yml` de este repo por defecto (configurable a `docker-compose.debug.yml` en `.env.stack`) | `.env.dev` | igual que `make dev-up` | volumen de dev |
+
+Notas:
+- La API dentro de Docker valida tokens con `AUTH_JWKS_URL=http://host.docker.internal:18080/.well-known/jwks.json`
+  (kali-auth-context publicado en el host en 18080). Fuera de Docker se usa `http://localhost:18080/...`.
+- El healthcheck de la imagen `dev` consulta `http://localhost:${APP_PORT}/api/v1/metrics` (ruta pública, sin token).
+- Para levantar solo la API sin arrancar ni montar la BD de dev:
+  `docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build --no-deps invoice-api`
+  (requiere `POSTGRES_*` apuntando a una BD accesible).
 
 ### 4. Compilar & Ejecutar
 
@@ -156,6 +175,43 @@ go test ./... -v
 ---
 
 ## API Endpoints
+
+### Autenticación y tenant
+
+Todas las rutas (salvo `/api/v1/metrics`) exigen `Authorization: Bearer <access_token>`
+emitido por `kali-auth-context`:
+
+- Se valida la firma RS256 con las claves de `AUTH_JWKS_URL` (con caché y recarga ante `kid` desconocido),
+  además de `JWT_ISSUER`, `JWT_AUDIENCE` y la vigencia. Sin `AUTH_JWKS_URL` el servicio no arranca.
+- `JWT_ISSUER` y `JWT_AUDIENCE` deben ser idénticos a los de `kali-auth-context` (valores unificados:
+  `http://localhost:8080` y `account`); si difieren, todas las llamadas responden `401 invalid token issuer/audience`.
+  `AUTH_JWKS_URL` es `http://localhost:18080/.well-known/jwks.json` en el host y
+  `http://host.docker.internal:18080/.well-known/jwks.json` dentro de Docker.
+- El tenant se toma **solo** del claim `tid`. Nunca se acepta un `tenant_id` del body, query o headers.
+- Un recurso de otra empresa responde como inexistente (`404 invoice not found` / `invoice item not found`).
+- Un `customer_id` o `item_id` que no pertenece al catálogo del tenant responde `422 customer not found` / `product not found`.
+- Las claves de idempotencia se aíslan por tenant.
+
+| Código | Causa |
+|---|---|
+| 400 | Error de validación (p. ej. `due_date cannot be before issue_date`, también al crear) |
+| 401 | Falta el token, es inválido o venció |
+| 404 | El recurso no existe en el tenant del token |
+| 422 | Cliente o producto fuera del catálogo del tenant; factura ya pagada/cancelada |
+| 503 | No se pudo obtener el JWKS de `kali-auth-context` |
+| 500 | Error inesperado: siempre `{"error": "internal server error"}`; el detalle queda solo en el log |
+
+### Catálogos del tenant
+
+| Método | Ruta | Cuerpo | Descripción |
+|---|---|---|---|
+| GET | `/api/v1/customers?search=&page=&page_size=` | — | Busca clientes por nombre o documento. Total en `X-Total-Count` |
+| POST | `/api/v1/customers` | `{ "name", "document" }` | Crea un cliente (409 si el documento ya existe en el tenant) |
+| GET | `/api/v1/products?search=&page=&page_size=` | — | Busca productos por código o nombre. Total en `X-Total-Count` |
+| POST | `/api/v1/products` | `{ "code", "name", "unit_price" }` | Crea un producto (409 si el código ya existe en el tenant) |
+
+Los UUID los genera el servidor. Las facturas devuelven además `CustomerName`,
+`CustomerDocument` y, por línea, `ProductCode` y `ProductName`.
 
 ### Facturas
 
@@ -486,6 +542,10 @@ CREATE TABLE schema_versions (
 | 2 | create_invoice_items_table | Tabla `invoice_items` con relación 1:N |
 | 3 | create_invoice_item_taxes_table | Tabla `invoice_item_taxes` con kind (DEBIT/CREDIT) |
 | 4 | create_idempotency_records_table | Tabla `idempotency_records` para replay |
+| 5 | alter_idempotency_records_body_nullable | `body` admite NULL mientras la petición está en curso |
+| 6 | add_tenant_id_to_invoices | Columna `invoices.tenant_id` + índice `(tenant_id, created_at DESC)`. Las líneas e impuestos heredan el tenant por su factura. Las facturas previas quedan con `tenant_id` NULL y no son visibles |
+| 7 | create_customers_table | Catálogo `customers` por tenant, documento único por tenant |
+| 8 | create_products_table | Catálogo `products` por tenant, código único por tenant |
 
 **Ejecución:** Al startup, `migrator.RunVersioned()` aplica solo migrations pendientes.
 

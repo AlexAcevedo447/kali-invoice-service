@@ -8,6 +8,10 @@ services:
     container_name: kali-invoice-api-dev
     image: kali-invoice:dev-${APP_PORT:-8080}
     env_file: .env.dev
+    # host.docker.internal → host (Docker Desktop lo trae; en Linux hace falta esto)
+    # para alcanzar el JWKS de kali-auth-context publicado en el host (18080).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     volumes:

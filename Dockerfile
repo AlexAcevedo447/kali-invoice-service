@@ -28,15 +28,16 @@ RUN apk add --no-cache \
     curl \
     postgresql-client
 
-# Air para hot-reload
-RUN go install github.com/air-verse/air@latest
+# Air para hot-reload (versión fijada: @latest exige Go más nuevo que la imagen base;
+# mismas versiones que kali-auth-context)
+RUN go install github.com/air-verse/air@v1.67.1
 
 # Linter
 RUN wget -O- -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
     sh -s -- -b /usr/local/bin v1.59.1
 
 # Wire para dependency injection
-RUN go install github.com/google/wire/cmd/wire@latest
+RUN go install github.com/google/wire/cmd/wire@v0.7.0
 
 # Copiar código y deps
 COPY . .
@@ -44,9 +45,9 @@ RUN go mod download
 
 EXPOSE 8080
 
-# Healthcheck para dev
+# Healthcheck para dev: la ruta pública de métricas es /api/v1/metrics (no requiere token)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/metrics || exit 1
+    CMD curl -fsS "http://localhost:${APP_PORT:-8080}/api/v1/metrics" >/dev/null || exit 1
 
 CMD ["air", "-c", ".air.toml"]
 
@@ -58,8 +59,8 @@ LABEL stage=debug
 
 RUN apk add --no-cache git bash build-base curl
 
-# Instalar Delve
-RUN go install github.com/go-delve/delve/cmd/dlv@latest
+# Instalar Delve (versión fijada compatible con Go 1.25; @latest puede exigir un Go más nuevo)
+RUN go install github.com/go-delve/delve/cmd/dlv@v1.25.2
 
 COPY . .
 RUN go mod download

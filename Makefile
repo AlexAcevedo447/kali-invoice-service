@@ -7,6 +7,7 @@ DEV_COMPOSE=docker compose -f docker-compose.dev.yml --env-file .env.dev
 DEBUG_COMPOSE=docker compose -f docker-compose.debug.yml --env-file .env.dev
 PROD_COMPOSE=docker compose -f docker-compose.prod.yml --env-file .env.prod
 DEV_CONTAINER=kali-invoice-api-dev
+API_PORT?=8080
 PROD_CONTAINER=kali-invoice-api
 
 GOBIN=$(shell go env GOPATH)/bin
@@ -31,19 +32,20 @@ help:
 	@echo "   make wire               - Genera wire_gen.go (dependency injection)"
 	@echo ""
 	@echo "🐳 DESARROLLO CON DOCKER:"
-	@echo "   make dev                - Inicia dev (docker-compose up)"
+	@echo "   make dev                - Inicia dev en primer plano (docker-compose up)"
+	@echo "   make dev-up             - Inicia dev en segundo plano y espera a la API"
 	@echo "   make dev-logs           - Ver logs en vivo del dev"
 	@echo "   make dev-test           - Ejecuta tests en el container dev"
 	@echo "   make dev-lint           - Linter en el container dev"
 	@echo "   make dev-lint-fix       - Linter + autofix en dev"
 	@echo "   make dev-down           - Apaga dev (docker-compose down)"
-	@echo "   make dev-clean          - Elimina containers y volúmenes de dev"
+	@echo "   make dev-clean          - ⚠️  BORRA containers, imágenes y el VOLUMEN de datos de dev"
 	@echo ""
 	@echo "🐞 DEBUG:"
 	@echo "   make debug              - Inicia stack de debug (Delve en puerto 40000)"
 	@echo "   make debug-db           - Levanta solo la BD para debug local"
 	@echo "   make debug-logs         - Ver logs del container de debug"
-	@echo "   make debug-down         - Apaga el stack de debug"
+	@echo "   make debug-down         - Apaga debug y restaura dev (conserva volúmenes)"
 	@echo "   (Luego conectar desde VS Code: Run & Debug → Go: Docker (Delve remoto))"
 	@echo ""
 	@echo "🚀 PRODUCCIÓN CON DOCKER:"
@@ -94,8 +96,13 @@ check: fmt tidy lint-local test-local
 dev:
 	$(DEV_COMPOSE) up --build
 
+# Igual que dev, pero en segundo plano y esperando a que la API esté lista.
+dev-up:
+	$(DEV_COMPOSE) up -d --build
+	@$(MAKE) --no-print-directory wait-api
+
 dev-logs:
-	$(DEV_COMPOSE) logs -f api
+	$(DEV_COMPOSE) logs -f invoice-api
 
 dev-test:
 	docker exec -it $(DEV_CONTAINER) go test ./... -v
@@ -117,23 +124,11 @@ dev-clean:
 # ============================
 
 debug:
-	@echo "🐞 Bajando dev stack y levantando debug en puerto 40000..."
-	$(DEV_COMPOSE) down 2>/dev/null || true
-	$(DEBUG_COMPOSE) down 2>/dev/null || true
+	@echo "🐞 Quitando contenedores de dev (los volúmenes se conservan) y levantando debug..."
+	$(DEV_COMPOSE) stop invoice-api db
+	$(DEV_COMPOSE) rm -f invoice-api db
 	$(DEBUG_COMPOSE) up --build -d
-	@echo "⏳ Esperando API en http://localhost:8080 ..."
-	@for i in $$(seq 1 30); do \
-		code=$$(curl -sS -o /dev/null -w "%{http_code}" "http://localhost:8080/api/v1/invoices?page=1&page_size=1" || true); \
-		if [ "$$code" = "200" ]; then \
-			echo "✅ API lista en puerto 8080"; \
-			break; \
-		fi; \
-		if [ $$i -eq 30 ]; then \
-			echo "❌ Timeout esperando API en puerto 8080"; \
-			exit 1; \
-		fi; \
-		sleep 1; \
-	done
+	@$(MAKE) --no-print-directory wait-api
 	@echo "✅ Debug arriba. Delve escuchando en 127.0.0.1:40000 (usa: make debug-logs)"
 
 debug-db:
@@ -141,25 +136,29 @@ debug-db:
 	$(DEV_COMPOSE) up db -d
 
 debug-logs:
-	$(DEBUG_COMPOSE) logs -f api
+	$(DEBUG_COMPOSE) logs -f invoice-api
 
 debug-down:
-	$(DEBUG_COMPOSE) down
-	@echo "🔄 Restaurando dev stack..."
-	$(DEV_COMPOSE) up -d db api
-	@echo "⏳ Esperando API en http://localhost:8080 ..."
-	@for i in $$(seq 1 30); do \
-		code=$$(curl -sS -o /dev/null -w "%{http_code}" "http://localhost:8080/api/v1/invoices?page=1&page_size=1" || true); \
+	@echo "🔄 Quitando contenedores de debug (los volúmenes se conservan) y restaurando dev..."
+	$(DEBUG_COMPOSE) stop invoice-api db
+	$(DEBUG_COMPOSE) rm -f invoice-api db
+	$(DEV_COMPOSE) up -d db invoice-api
+	@$(MAKE) --no-print-directory wait-api
+
+# Espera a que la API responda en la ruta pública de métricas (no requiere token).
+# El listado de facturas exige JWT: respondería 401 aunque la API esté lista.
+wait-api:
+	@echo "⏳ Esperando API en http://localhost:$(API_PORT)/api/v1/metrics ..."
+	@for i in $$(seq 1 90); do \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$(API_PORT)/api/v1/metrics" || true); \
 		if [ "$$code" = "200" ]; then \
-			echo "✅ API lista en puerto 8080"; \
-			break; \
+			echo "✅ API lista en puerto $(API_PORT)"; \
+			exit 0; \
 		fi; \
-		if [ $$i -eq 30 ]; then \
-			echo "❌ Timeout esperando API en puerto 8080"; \
-			exit 1; \
-		fi; \
-		sleep 1; \
-	done
+		sleep 2; \
+	done; \
+	echo "❌ Timeout esperando API en puerto $(API_PORT)"; \
+	exit 1
 
 # ============================
 # Producción (Docker)
@@ -184,4 +183,4 @@ prod-build:
 # Utilidades
 # ============================
 
-.PHONY: help run test-local fmt tidy tools check wire lint-local dev dev-logs dev-test dev-lint dev-lint-fix dev-down dev-clean debug debug-db debug-logs debug-down prod prod-logs prod-down prod-clean prod-build
+.PHONY: help run test-local fmt tidy tools check wire lint-local dev dev-up wait-api dev-logs dev-test dev-lint dev-lint-fix dev-down dev-clean debug debug-db debug-logs debug-down prod prod-logs prod-down prod-clean prod-build
