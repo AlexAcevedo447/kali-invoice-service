@@ -30,7 +30,7 @@ func (r *invoiceItemListRepo) GetAll(tenantID string, p ports.Pagination) ([]*in
 	var ms []models.InvoiceItemModel
 	err := r.db.NewSelect().
 		Model(&ms).
-		Relation("Taxes").
+		Relation("Taxes", orderItemTaxes).
 		Relation("Product").
 		Join("JOIN invoices AS inv ON inv.id = ii.invoice_id").
 		Where("inv.tenant_id = ?", tenantID).

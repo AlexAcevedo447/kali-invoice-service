@@ -31,7 +31,7 @@ func (r *invoiceListRepo) GetAll(tenantID string, p ports.Pagination) ([]*invoic
 	err := r.db.NewSelect().
 		Model(&ms).
 		Relation("Items").
-		Relation("Items.Taxes").
+		Relation("Items.Taxes", orderItemTaxes).
 		Relation("Taxes").
 		Relation("Customer").
 		Relation("Items.Product").

@@ -12,4 +12,7 @@ type InvoiceItemTaxModel struct {
 	Kind          string  `bun:"kind,notnull"`
 	Rate          float64 `bun:"rate,notnull"`
 	Amount        float64 `bun:"amount,notnull"`
+	// Position conserva el orden en que se registraron los impuestos de la línea
+	// (CA-13.2). Las filas anteriores a la migración v9 quedan en 0.
+	Position int `bun:"position,notnull,default:0"`
 }

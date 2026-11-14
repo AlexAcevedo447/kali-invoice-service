@@ -160,6 +160,11 @@ func (m *Migrator) getMigrations() []Migration {
 			Name:    "create_products_table",
 			Up:      m.migrationV008CreateProductsTable,
 		},
+		{
+			Version: 9,
+			Name:    "add_position_to_invoice_item_taxes",
+			Up:      m.migrationV009AddPositionToInvoiceItemTaxes,
+		},
 	}
 }
 
@@ -226,5 +231,13 @@ func (m *Migrator) migrationV008CreateProductsTable(ctx context.Context, db *bun
 		return err
 	}
 	_, err := db.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS idx_products_tenant_code ON products (tenant_id, code)")
+	return err
+}
+
+// migrationV009AddPositionToInvoiceItemTaxes guarda el orden de los impuestos
+// de cada línea (CA-13.2). Es aditiva: las filas existentes quedan con 0 y no
+// se modifican; se ordenan por (position, id).
+func (m *Migrator) migrationV009AddPositionToInvoiceItemTaxes(ctx context.Context, db *bun.DB) error {
+	_, err := db.ExecContext(ctx, "ALTER TABLE invoice_item_taxes ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0")
 	return err
 }

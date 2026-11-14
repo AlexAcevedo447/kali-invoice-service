@@ -17,4 +17,6 @@ var (
 	ErrTaxCodeRequired   = domainerr.NewValidation("tax code is required")
 	ErrTaxRateInvalid    = domainerr.NewValidation("tax rate must be greater than or equal to 0")
 	ErrTaxKindInvalid    = domainerr.NewValidation("tax kind must be DEBIT or CREDIT")
+	// D4-02: un mismo código (sin distinguir mayúsculas ni espacios) no se repite en una línea.
+	ErrTaxCodeDuplicated = domainerr.NewValidation("tax code is repeated in the same item")
 )

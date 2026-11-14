@@ -25,7 +25,7 @@ func (r *invoiceByIDRepo) GetByID(tenantID, id string) (*invoice.Invoice, error)
 	err := r.db.NewSelect().
 		Model(m).
 		Relation("Items").
-		Relation("Items.Taxes").
+		Relation("Items.Taxes", orderItemTaxes).
 		Relation("Taxes").
 		Relation("Customer").
 		Relation("Items.Product").

@@ -24,7 +24,7 @@ func (r *invoiceItemByIDRepo) GetByID(tenantID, id string) (*invoiceitem.Invoice
 	m := new(models.InvoiceItemModel)
 	err := r.db.NewSelect().
 		Model(m).
-		Relation("Taxes").
+		Relation("Taxes", orderItemTaxes).
 		Relation("Product").
 		// La línea pertenece al tenant de su factura.
 		Join("JOIN invoices AS inv ON inv.id = ii.invoice_id").

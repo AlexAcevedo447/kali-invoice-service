@@ -7,7 +7,7 @@ import (
 
 func InvoiceItemToModel(item *invoiceitem.InvoiceItem) *models.InvoiceItemModel {
 	taxes := make([]models.InvoiceItemTaxModel, 0, len(item.Taxes))
-	for _, t := range item.Taxes {
+	for i, t := range item.Taxes {
 		invoiceID := t.InvoiceID
 		invoiceItemID := t.InvoiceItemID
 		taxes = append(taxes, models.InvoiceItemTaxModel{
@@ -18,6 +18,7 @@ func InvoiceItemToModel(item *invoiceitem.InvoiceItem) *models.InvoiceItemModel 
 			Kind:          string(t.Kind),
 			Rate:          t.Rate,
 			Amount:        t.Amount,
+			Position:      i,
 		})
 	}
 

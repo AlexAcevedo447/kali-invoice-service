@@ -265,12 +265,12 @@ Idempotency-Key: unique-key-v1
       "taxes": [
         {
           "code": "IVA",
-          "rate": 19,
+          "rate": 0.19,
           "kind": "DEBIT"          # DEBIT suma, CREDIT resta
         },
         {
           "code": "DESCUENTO",
-          "rate": 5,
+          "rate": 0.05,
           "kind": "CREDIT"         # Resta del subtotal
         }
       ]
@@ -304,13 +304,13 @@ Idempotency-Key: unique-key-v1
       "taxes": [
         {
           "code": "IVA",
-          "rate": 19,
+          "rate": 0.19,
           "kind": "DEBIT",
           "amount": 95.00
         },
         {
           "code": "DESCUENTO",
-          "rate": 5,
+          "rate": 0.05,
           "kind": "CREDIT",
           "amount": 30.00
         }
@@ -387,7 +387,7 @@ Idempotency-Key: unique-key-item-v1
   "taxes": [
     {
       "code": "IVA",
-      "rate": 19,
+      "rate": 0.19,
       "kind": "DEBIT"
     }
   ]
@@ -421,12 +421,12 @@ Idempotency-Key: unique-key-item-update-v1
   "taxes": [
     {
       "code": "IVA",
-      "rate": 19,
+      "rate": 0.19,
       "kind": "DEBIT"
     },
     {
       "code": "IMPUESTO_CONSUMO",
-      "rate": 8,
+      "rate": 0.08,
       "kind": "DEBIT"
     }
   ]
@@ -483,9 +483,9 @@ GET /api/v1/metrics
 | Concepto | Rate | Kind | Base | Efecto | Monto |
 |----------|------|------|------|--------|-------|
 | Subtotal | - | - | 500 | - | 500.00 |
-| **IVA 19%** | 19 | **DEBIT** | 500 | +95 | **95.00** |
-| **Descuento 5%** | 5 | **CREDIT** | 500 | -25 | **-25.00** |
-| **Impuesto Consumo 8%** | 8 | **DEBIT** | 500 | +40 | **40.00** |
+| **IVA 19%** | 0.19 | **DEBIT** | 500 | +95 | **95.00** |
+| **Descuento 5%** | 0.05 | **CREDIT** | 500 | -25 | **-25.00** |
+| **Impuesto Consumo 8%** | 0.08 | **DEBIT** | 500 | +40 | **40.00** |
 | **Tax Total** | - | - | - | - | **110.00** |
 | **Total** | - | - | - | - | **610.00** |
 
@@ -497,6 +497,24 @@ total = subtotal + tax_total
 ```
 
 **Almacenamiento:** Amounts siempre positivos; la naturaleza (DEBIT/CREDIT) determina el signo en cálculo.
+
+### Reglas de validación y precisión (incremento 4)
+
+- **Lista por línea:** 0..N impuestos. Una línea sin impuestos es válida (no se crea un "IVA 0 %").
+- **`code`:** obligatorio, texto libre (no hay catálogo). Se normaliza con `trim` + mayúsculas
+  (`" reteFuente "` → `RETEFUENTE`). No se repite en la misma línea sin distinguir mayúsculas ni
+  espacios exteriores → 400 `tax code is repeated in the same item`.
+- **`kind`:** obligatorio y explícito, `DEBIT` o `CREDIT` (sin distinguir mayúsculas). Vacío u otro
+  valor → 400 `tax kind must be DEBIT or CREDIT`.
+- **`rate`:** **fracción** (`0.19` = 19 %), `>= 0`, sin máximo → 400 `tax rate must be greater than
+  or equal to 0` si es negativa.
+- **Cálculo:** `amount = subtotal × rate` en `float64` (IEEE-754 doble precisión) **sin redondeo**;
+  `tax_total = Σ DEBIT − Σ CREDIT` en el orden de la lista; los totales de la factura se suman en
+  Postgres. El servidor no define tarifa máxima ni regla de redondeo (punto abierto D4-04).
+- **Orden:** los impuestos se devuelven en el orden enviado (columna `position`, migración v9;
+  filas anteriores quedan en 0 y se ordenan por `id`).
+- **`PUT /invoice-items/{id}`** reemplaza la lista completa: omitir `taxes` o enviar `[]` deja la
+  línea sin impuestos. Requiere `invoice-items/manage` (`invoices/manage` no lo concede).
 
 ---
 
