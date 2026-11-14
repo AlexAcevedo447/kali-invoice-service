@@ -169,8 +169,13 @@ Servidor escucha en `http://localhost:3000`
 ### 5. Tests
 
 ```bash
-go test ./... -v
+go vet -mod=mod ./... && go test -mod=mod ./...   # o: make test-local
 ```
+
+Se usa `-mod=mod` (dependencias desde la caché de módulos, según `go.mod`/`go.sum`) porque, tras
+`docker compose ... up` (o `npm run stack:up` del front), Docker crea en el host una carpeta
+`vendor/` vacía (montaje `- /app/vendor`); con ella Go usa `-mod=vendor` por defecto y falla con
+`inconsistent vendoring`. `-mod=mod` no modifica archivos.
 
 ---
 
@@ -510,7 +515,9 @@ total = subtotal + tax_total
   or equal to 0` si es negativa.
 - **Cálculo:** `amount = subtotal × rate` en `float64` (IEEE-754 doble precisión) **sin redondeo**;
   `tax_total = Σ DEBIT − Σ CREDIT` en el orden de la lista; los totales de la factura se suman en
-  Postgres. El servidor no define tarifa máxima ni regla de redondeo (punto abierto D4-04).
+  Postgres. El servidor no define tarifa máxima ni regla de redondeo: la interfaz muestra los
+  valores exactos (D4-04) y la regla queda como pregunta de negocio pendiente PN-01
+  (`invoice-kali-front/docs/requisitos/INCREMENTO_04_IMPUESTOS.md`).
 - **Orden:** los impuestos se devuelven en el orden enviado (columna `position`, migración v9;
   filas anteriores quedan en 0 y se ordenan por `id`).
 - **`PUT /invoice-items/{id}`** reemplaza la lista completa: omitir `taxes` o enviar `[]` deja la

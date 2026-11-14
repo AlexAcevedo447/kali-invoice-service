@@ -65,7 +65,7 @@ run:
 
 test-local:
 	@echo "Running local tests..."
-	go test ./... -v -cover
+	go test -mod=mod ./... -v -cover
 
 fmt:
 	go fmt ./...
