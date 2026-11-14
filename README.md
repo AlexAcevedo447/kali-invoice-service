@@ -190,8 +190,13 @@ emitido por `kali-auth-context`:
 - El tenant se toma **solo** del claim `tid`. Nunca se acepta un `tenant_id` del body, query o headers.
 - La empresa del token debe seguir **activa**: se consulta `GET /api/v1/auth/session` de `kali-auth-context`
   con el mismo token (URL derivada de `AUTH_JWKS_URL` o `AUTH_SESSION_URL`). Una empresa suspendida responde
-  `403 tenant is suspended` aunque el token sea anterior a la suspensión; el estado se recuerda por empresa
-  `TENANT_STATUS_CACHE_SECONDS` (5 s por defecto). Si auth no responde: `503 authentication service unavailable`.
+  `403 tenant is suspended` aunque el token sea anterior a la suspensión. Si auth no responde (o su respuesta
+  no se entiende): `503 authentication service unavailable`.
+- La misma respuesta de sesión trae los **permisos efectivos** del usuario
+  (`{"permissions":[{"resource":"invoices","action":"manage"}, ...]}`). Caché de
+  `TENANT_STATUS_CACHE_SECONDS` (5 s por defecto): los permisos se guardan **por (empresa, usuario)**, nunca se
+  comparten entre usuarios; una suspensión se guarda por empresa y bloquea a todos sus usuarios. Un cambio de
+  roles o de estado se aplica como máximo al vencer esa caché.
 - Un recurso de otra empresa responde como inexistente (`404 invoice not found` / `invoice item not found`).
 - Un `customer_id` o `item_id` que no pertenece al catálogo del tenant responde `422 customer not found` / `product not found`.
 - Las claves de idempotencia se aíslan por tenant.
@@ -201,10 +206,32 @@ emitido por `kali-auth-context`:
 | 400 | Error de validación (p. ej. `due_date cannot be before issue_date`, también al crear) |
 | 401 | Falta el token, es inválido o venció |
 | 403 | La empresa del token está suspendida (`tenant is suspended`) |
+| 403 | El usuario no tiene el permiso de la operación (`insufficient permissions`) |
 | 404 | El recurso no existe en el tenant del token |
 | 422 | Cliente o producto fuera del catálogo del tenant; factura ya pagada/cancelada |
-| 503 | No se pudo obtener el JWKS de `kali-auth-context` |
+| 503 | No se pudo obtener el JWKS o la sesión de `kali-auth-context` (`authentication service unavailable`) |
 | 500 | Error inesperado: siempre `{"error": "internal server error"}`; el detalle queda solo en el log |
+
+#### Permisos por operación
+
+Cada ruta exige un permiso `recurso/acción` (contrato compartido `MATRIZ_PERMISOS.md`). Se concede si algún
+permiso del usuario tiene el recurso exigido o `*` y la acción exigida o `*`; además `manage` implica `read`
+(`read` nunca implica `manage`). Sin permiso: `403 insufficient permissions`. Sin lista de permisos se deniega
+(falla cerrado).
+
+| Operación | Permiso |
+|---|---|
+| `GET /api/v1/invoices`, `GET /api/v1/invoices/:id` | `invoices/read` |
+| `POST /api/v1/invoices`, `PUT /api/v1/invoices/:id`, `PATCH /api/v1/invoices/:id/pay`, `PATCH /api/v1/invoices/:id/cancel` | `invoices/manage` |
+| `GET /api/v1/invoice-items`, `GET /api/v1/invoice-items/:id` | `invoice-items/read` |
+| `POST /api/v1/invoice-items`, `PUT /api/v1/invoice-items/:id`, `DELETE /api/v1/invoice-items/:id` | `invoice-items/manage` |
+| `GET /api/v1/customers` | `customers/read` |
+| `POST /api/v1/customers` | `customers/manage` |
+| `GET /api/v1/products` | `products/read` |
+| `POST /api/v1/products` | `products/manage` |
+| `GET /api/v1/metrics` | Pública |
+
+El permiso se comprueba antes de la idempotencia: una petición denegada no reserva su `Idempotency-Key`.
 
 ### Catálogos del tenant
 
