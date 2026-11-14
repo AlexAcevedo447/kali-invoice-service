@@ -188,6 +188,10 @@ emitido por `kali-auth-context`:
   `AUTH_JWKS_URL` es `http://localhost:18080/.well-known/jwks.json` en el host y
   `http://host.docker.internal:18080/.well-known/jwks.json` dentro de Docker.
 - El tenant se toma **solo** del claim `tid`. Nunca se acepta un `tenant_id` del body, query o headers.
+- La empresa del token debe seguir **activa**: se consulta `GET /api/v1/auth/session` de `kali-auth-context`
+  con el mismo token (URL derivada de `AUTH_JWKS_URL` o `AUTH_SESSION_URL`). Una empresa suspendida responde
+  `403 tenant is suspended` aunque el token sea anterior a la suspensión; el estado se recuerda por empresa
+  `TENANT_STATUS_CACHE_SECONDS` (5 s por defecto). Si auth no responde: `503 authentication service unavailable`.
 - Un recurso de otra empresa responde como inexistente (`404 invoice not found` / `invoice item not found`).
 - Un `customer_id` o `item_id` que no pertenece al catálogo del tenant responde `422 customer not found` / `product not found`.
 - Las claves de idempotencia se aíslan por tenant.
@@ -196,6 +200,7 @@ emitido por `kali-auth-context`:
 |---|---|
 | 400 | Error de validación (p. ej. `due_date cannot be before issue_date`, también al crear) |
 | 401 | Falta el token, es inválido o venció |
+| 403 | La empresa del token está suspendida (`tenant is suspended`) |
 | 404 | El recurso no existe en el tenant del token |
 | 422 | Cliente o producto fuera del catálogo del tenant; factura ya pagada/cancelada |
 | 503 | No se pudo obtener el JWKS de `kali-auth-context` |
