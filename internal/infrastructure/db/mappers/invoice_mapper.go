@@ -37,6 +37,7 @@ func InvoiceToModel(inv *invoice.Invoice) *models.InvoiceModel {
 	}
 	return &models.InvoiceModel{
 		ID:         inv.ID,
+		TenantID:   inv.TenantID,
 		CustomerID: inv.CustomerID,
 		IssueDate:  inv.IssueDate,
 		DueDate:    inv.DueDate,
@@ -73,29 +74,42 @@ func ModelToInvoice(m *models.InvoiceModel) *invoice.Invoice {
 				Amount:        tax.Amount,
 			})
 		}
+		var productCode, productName string
+		if it.Product != nil {
+			productCode, productName = it.Product.Code, it.Product.Name
+		}
 		items = append(items, invoiceitem.InvoiceItem{
-			ID:        it.ID,
-			InvoiceID: it.InvoiceID,
-			ItemID:    it.ItemID,
-			Quantity:  it.Quantity,
-			UnitPrice: it.UnitPrice,
-			Taxes:     taxes,
-			TaxTotal:  it.TaxTotal,
-			Subtotal:  it.Subtotal,
-			Total:     it.Total,
+			ID:          it.ID,
+			InvoiceID:   it.InvoiceID,
+			ItemID:      it.ItemID,
+			ProductCode: productCode,
+			ProductName: productName,
+			Quantity:    it.Quantity,
+			UnitPrice:   it.UnitPrice,
+			Taxes:       taxes,
+			TaxTotal:    it.TaxTotal,
+			Subtotal:    it.Subtotal,
+			Total:       it.Total,
 		})
 	}
+	var customerName, customerDocument string
+	if m.Customer != nil {
+		customerName, customerDocument = m.Customer.Name, m.Customer.Document
+	}
 	return &invoice.Invoice{
-		ID:         m.ID,
-		CustomerID: m.CustomerID,
-		IssueDate:  m.IssueDate,
-		DueDate:    m.DueDate,
-		Subtotal:   m.Subtotal,
-		TaxTotal:   m.TaxTotal,
-		Total:      m.Total,
-		Status:     invoice.Status(m.Status),
-		CreatedAt:  m.CreatedAt,
-		UpdatedAt:  m.UpdatedAt,
-		Items:      items,
+		ID:               m.ID,
+		TenantID:         m.TenantID,
+		CustomerID:       m.CustomerID,
+		CustomerName:     customerName,
+		CustomerDocument: customerDocument,
+		IssueDate:        m.IssueDate,
+		DueDate:          m.DueDate,
+		Subtotal:         m.Subtotal,
+		TaxTotal:         m.TaxTotal,
+		Total:            m.Total,
+		Status:           invoice.Status(m.Status),
+		CreatedAt:        m.CreatedAt,
+		UpdatedAt:        m.UpdatedAt,
+		Items:            items,
 	}
 }

@@ -19,10 +19,17 @@ func NewInvoiceUpdateRepo(db *bun.DB) ports.InvoiceUpdater {
 
 func (r *invoiceUpdateRepo) Update(inv *invoice.Invoice) error {
 	model := mappers.InvoiceToModel(inv)
-	_, err := r.db.NewUpdate().
+	res, err := r.db.NewUpdate().
 		Model(model).
 		Column("customer_id", "issue_date", "due_date", "subtotal", "tax_total", "total", "status", "updated_at").
 		WherePK().
+		Where("tenant_id = ?", inv.TenantID).
 		Exec(context.Background())
-	return err
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return invoice.ErrNotFound
+	}
+	return nil
 }

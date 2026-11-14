@@ -1,8 +1,6 @@
 package invoiceitem
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
 )
 
@@ -12,10 +10,10 @@ func calculateTaxes(invoiceID, invoiceItemID string, subtotal float64, taxes []T
 
 	for _, t := range taxes {
 		if t.Code == "" {
-			return nil, 0, errors.New("tax code is required")
+			return nil, 0, ErrTaxCodeRequired
 		}
 		if t.Rate < 0 {
-			return nil, 0, errors.New("tax rate must be greater than or equal to 0")
+			return nil, 0, ErrTaxRateInvalid
 		}
 		kind, err := normalizeTaxKind(t.Kind)
 		if err != nil {
@@ -45,7 +43,7 @@ func normalizeTaxKind(kind string) (TaxKind, error) {
 	case TaxKindCredit:
 		return TaxKindCredit, nil
 	default:
-		return "", errors.New("tax kind must be DEBIT or CREDIT")
+		return "", ErrTaxKindInvalid
 	}
 }
 

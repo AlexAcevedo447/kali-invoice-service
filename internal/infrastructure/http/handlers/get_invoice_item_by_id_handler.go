@@ -2,6 +2,7 @@ package handlers
 
 import (
 	appquery "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/query"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -18,7 +19,7 @@ func (h *GetInvoiceItemByIDHandler) Handle(c *fiber.Ctx) error {
 	if err := validateUUID(id); err != nil {
 		return err
 	}
-	item, err := h.getByIDQuery.Execute(id)
+	item, err := h.getByIDQuery.Execute(middleware.TenantID(c), id)
 	if err != nil {
 		return mapDomainError(err)
 	}

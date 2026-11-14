@@ -17,14 +17,14 @@ func NewInvoiceItemUpdateRepo(db *bun.DB) ports.InvoiceItemUpdater {
 	return &invoiceItemUpdateRepo{db: db}
 }
 
-func (r *invoiceItemUpdateRepo) Update(item *invoiceitem.InvoiceItem) error {
+func (r *invoiceItemUpdateRepo) Update(tenantID string, item *invoiceitem.InvoiceItem) error {
 	ctx := context.Background()
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	if err := ensureInvoiceEditableTx(ctx, tx, item.InvoiceID); err != nil {
+	if err := ensureInvoiceEditableTx(ctx, tx, tenantID, item.InvoiceID); err != nil {
 		_ = tx.Rollback()
 		return err
 	}

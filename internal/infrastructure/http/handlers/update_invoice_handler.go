@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"time"
 
 	appcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/command"
@@ -37,7 +38,7 @@ func (h *UpdateInvoiceHandler) Handle(c *fiber.Ctx) error {
 		}
 	}
 
-	inv, err := h.updateCmd.Execute(id, appcommand.UpdateInvoiceInput{
+	inv, err := h.updateCmd.Execute(middleware.TenantID(c), id, appcommand.UpdateInvoiceInput{
 		CustomerID: req.CustomerID,
 		DueDate:    req.DueDate,
 	})

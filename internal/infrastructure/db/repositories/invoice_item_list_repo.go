@@ -18,7 +18,7 @@ func NewInvoiceItemListRepo(db *bun.DB) ports.InvoiceItemListReader {
 	return &invoiceItemListRepo{db: db}
 }
 
-func (r *invoiceItemListRepo) GetAll(p ports.Pagination) ([]*invoiceitem.InvoiceItem, error) {
+func (r *invoiceItemListRepo) GetAll(tenantID string, p ports.Pagination) ([]*invoiceitem.InvoiceItem, error) {
 	if p.Page <= 0 {
 		p.Page = 1
 	}
@@ -31,6 +31,10 @@ func (r *invoiceItemListRepo) GetAll(p ports.Pagination) ([]*invoiceitem.Invoice
 	err := r.db.NewSelect().
 		Model(&ms).
 		Relation("Taxes").
+		Relation("Product").
+		Join("JOIN invoices AS inv ON inv.id = ii.invoice_id").
+		Where("inv.tenant_id = ?", tenantID).
+		OrderExpr("ii.id").
 		Limit(p.PageSize).
 		Offset(offset).
 		Scan(context.Background())

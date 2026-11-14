@@ -13,11 +13,11 @@ func NewGetAllInvoicesQuery(repo ports.InvoiceListReader) *GetAllInvoicesQuery {
 	return &GetAllInvoicesQuery{repo: repo}
 }
 
-func (q *GetAllInvoicesQuery) Execute(p ports.Pagination) ([]*invoice.Invoice, error) {
-	return q.repo.GetAll(p)
+func (q *GetAllInvoicesQuery) Execute(tenantID string, p ports.Pagination) ([]*invoice.Invoice, error) {
+	return q.repo.GetAll(tenantID, p)
 }
 
 // Total devuelve el número total de facturas registradas.
-func (q *GetAllInvoicesQuery) Total() (int, error) {
-	return q.repo.Count()
+func (q *GetAllInvoicesQuery) Total(tenantID string) (int, error) {
+	return q.repo.Count(tenantID)
 }

@@ -145,6 +145,21 @@ func (m *Migrator) getMigrations() []Migration {
 			Name:    "alter_idempotency_records_body_nullable",
 			Up:      m.migrationV005AlterIdempotencyBodyNullable,
 		},
+		{
+			Version: 6,
+			Name:    "add_tenant_id_to_invoices",
+			Up:      m.migrationV006AddTenantIDToInvoices,
+		},
+		{
+			Version: 7,
+			Name:    "create_customers_table",
+			Up:      m.migrationV007CreateCustomersTable,
+		},
+		{
+			Version: 8,
+			Name:    "create_products_table",
+			Up:      m.migrationV008CreateProductsTable,
+		},
 	}
 }
 
@@ -175,5 +190,41 @@ func (m *Migrator) migrationV004CreateIdempotencyTable(ctx context.Context, db *
 // migrationV005AlterIdempotencyBodyNullable makes the body column nullable.
 func (m *Migrator) migrationV005AlterIdempotencyBodyNullable(ctx context.Context, db *bun.DB) error {
 	_, err := db.Exec("ALTER TABLE idempotency_records ALTER COLUMN body DROP NOT NULL")
+	return err
+}
+
+// migrationV006AddTenantIDToInvoices agrega la pertenencia de cada factura a un
+// tenant. Las líneas e impuestos heredan el tenant de su factura (se consultan
+// siempre unidas a invoices), por eso no se duplica la columna en esas tablas.
+// Las facturas anteriores quedan con tenant_id NULL y no son visibles para
+// ningún tenant.
+func (m *Migrator) migrationV006AddTenantIDToInvoices(ctx context.Context, db *bun.DB) error {
+	stmts := []string{
+		"ALTER TABLE invoices ADD COLUMN IF NOT EXISTS tenant_id TEXT",
+		"CREATE INDEX IF NOT EXISTS idx_invoices_tenant_created ON invoices (tenant_id, created_at DESC)",
+	}
+	for _, stmt := range stmts {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// migrationV007CreateCustomersTable crea el catálogo de clientes por tenant.
+func (m *Migrator) migrationV007CreateCustomersTable(ctx context.Context, db *bun.DB) error {
+	if _, err := db.NewCreateTable().Model((*models.CustomerModel)(nil)).IfNotExists().Exec(ctx); err != nil {
+		return err
+	}
+	_, err := db.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_tenant_document ON customers (tenant_id, document)")
+	return err
+}
+
+// migrationV008CreateProductsTable crea el catálogo de productos por tenant.
+func (m *Migrator) migrationV008CreateProductsTable(ctx context.Context, db *bun.DB) error {
+	if _, err := db.NewCreateTable().Model((*models.ProductModel)(nil)).IfNotExists().Exec(ctx); err != nil {
+		return err
+	}
+	_, err := db.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS idx_products_tenant_code ON products (tenant_id, code)")
 	return err
 }

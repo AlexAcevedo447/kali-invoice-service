@@ -16,9 +16,9 @@ func NewCancelInvoiceCommand(c ports.InvoiceStatusUpdater, publisher ports.Invoi
 	return &CancelInvoiceCommand{commandRepo: c, publisher: publisher}
 }
 
-func (cmd *CancelInvoiceCommand) Execute(id string) error {
+func (cmd *CancelInvoiceCommand) Execute(tenantID, id string) error {
 	var previousStatus invoice.Status
-	updated, err := cmd.commandRepo.UpdateStatus(id, func(inv *invoice.Invoice) error {
+	updated, err := cmd.commandRepo.UpdateStatus(tenantID, id, func(inv *invoice.Invoice) error {
 		previousStatus = inv.Status
 		return inv.Cancel()
 	})

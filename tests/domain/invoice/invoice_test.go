@@ -1,6 +1,7 @@
 package invoice_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ var baseItems = []invoice.ItemInput{
 
 func newTestInvoice(t *testing.T) *invoice.Invoice {
 	t.Helper()
-	inv, err := invoice.New("customer-1", time.Now(), time.Now().AddDate(0, 0, 30), baseItems)
+	inv, err := invoice.New("tenant-a", "customer-1", time.Now(), time.Now().AddDate(0, 0, 30), baseItems)
 	if err != nil {
 		t.Fatalf("unexpected error creating invoice: %v", err)
 	}
@@ -44,15 +45,29 @@ func TestNew_HappyPath(t *testing.T) {
 	}
 }
 
+func TestNew_MissingTenant(t *testing.T) {
+	_, err := invoice.New("", "customer-1", time.Now(), time.Now().AddDate(0, 0, 30), baseItems)
+	if err != invoice.ErrTenantRequired {
+		t.Errorf("expected ErrTenantRequired, got %v", err)
+	}
+}
+
+func TestNew_SetsTenant(t *testing.T) {
+	inv := newTestInvoice(t)
+	if inv.TenantID != "tenant-a" {
+		t.Errorf("expected tenant-a, got %s", inv.TenantID)
+	}
+}
+
 func TestNew_MissingCustomerID(t *testing.T) {
-	_, err := invoice.New("", time.Now(), time.Now().AddDate(0, 0, 30), baseItems)
+	_, err := invoice.New("tenant-a", "", time.Now(), time.Now().AddDate(0, 0, 30), baseItems)
 	if err == nil {
 		t.Error("expected error for missing customer_id")
 	}
 }
 
 func TestNew_NoItems(t *testing.T) {
-	_, err := invoice.New("customer-1", time.Now(), time.Now().AddDate(0, 0, 30), nil)
+	_, err := invoice.New("tenant-a", "customer-1", time.Now(), time.Now().AddDate(0, 0, 30), nil)
 	if err == nil {
 		t.Error("expected error for empty items")
 	}
@@ -60,7 +75,7 @@ func TestNew_NoItems(t *testing.T) {
 
 func TestNew_InvalidItemQuantity(t *testing.T) {
 	items := []invoice.ItemInput{{ItemID: "item-1", Quantity: 0, UnitPrice: 10.0}}
-	_, err := invoice.New("customer-1", time.Now(), time.Now().AddDate(0, 0, 30), items)
+	_, err := invoice.New("tenant-a", "customer-1", time.Now(), time.Now().AddDate(0, 0, 30), items)
 	if err == nil {
 		t.Error("expected error for quantity <= 0")
 	}
@@ -68,7 +83,7 @@ func TestNew_InvalidItemQuantity(t *testing.T) {
 
 func TestNew_InvalidItemPrice(t *testing.T) {
 	items := []invoice.ItemInput{{ItemID: "item-1", Quantity: 1, UnitPrice: -5.0}}
-	_, err := invoice.New("customer-1", time.Now(), time.Now().AddDate(0, 0, 30), items)
+	_, err := invoice.New("tenant-a", "customer-1", time.Now(), time.Now().AddDate(0, 0, 30), items)
 	if err == nil {
 		t.Error("expected error for unit_price <= 0")
 	}
@@ -171,5 +186,25 @@ func TestUpdateHeader_CanceledIsNotEditable(t *testing.T) {
 	}
 	if inv.CustomerID != "customer-1" {
 		t.Errorf("expected customer unchanged, got %s", inv.CustomerID)
+	}
+}
+
+// Regresión: al crear se aplica la misma regla de vencimiento que al editar.
+func TestNew_DueDateBeforeIssueDate(t *testing.T) {
+	issue := time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)
+	_, err := invoice.New("tenant-a", "customer-1", issue, issue.AddDate(0, 0, -1), baseItems)
+	if !errors.Is(err, invoice.ErrDueDateBeforeIssueDate) {
+		t.Fatalf("expected ErrDueDateBeforeIssueDate, got %v", err)
+	}
+}
+
+func TestNew_DueDateEqualToIssueDateIsValid(t *testing.T) {
+	issue := time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)
+	inv, err := invoice.New("tenant-a", "customer-1", issue, issue, baseItems)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !inv.DueDate.Equal(issue) {
+		t.Fatalf("expected due date %v, got %v", issue, inv.DueDate)
 	}
 }

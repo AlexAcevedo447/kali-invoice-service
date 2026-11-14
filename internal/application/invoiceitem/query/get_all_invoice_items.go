@@ -13,6 +13,6 @@ func NewGetAllInvoiceItemsQuery(repo ports.InvoiceItemListReader) *GetAllInvoice
 	return &GetAllInvoiceItemsQuery{repo: repo}
 }
 
-func (q *GetAllInvoiceItemsQuery) Execute(p ports.Pagination) ([]*invoiceitem.InvoiceItem, error) {
-	return q.repo.GetAll(p)
+func (q *GetAllInvoiceItemsQuery) Execute(tenantID string, p ports.Pagination) ([]*invoiceitem.InvoiceItem, error) {
+	return q.repo.GetAll(tenantID, p)
 }

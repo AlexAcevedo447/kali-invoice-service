@@ -15,9 +15,9 @@ func NewPayInvoiceCommand(c ports.InvoiceStatusUpdater, publisher ports.InvoiceS
 	return &PayInvoiceCommand{commandRepo: c, publisher: publisher}
 }
 
-func (cmd *PayInvoiceCommand) Execute(id string) error {
+func (cmd *PayInvoiceCommand) Execute(tenantID, id string) error {
 	var previousStatus invoice.Status
-	updated, err := cmd.commandRepo.UpdateStatus(id, func(inv *invoice.Invoice) error {
+	updated, err := cmd.commandRepo.UpdateStatus(tenantID, id, func(inv *invoice.Invoice) error {
 		previousStatus = inv.Status
 		return inv.MarkAsPaid()
 	})

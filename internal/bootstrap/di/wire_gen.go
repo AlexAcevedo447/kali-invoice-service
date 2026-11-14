@@ -7,6 +7,7 @@
 package di
 
 import (
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/application/catalog"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/command"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/query"
 	command2 "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/command"
@@ -27,11 +28,13 @@ func InitializeApp(cfg *config.Config) (*fiber.App, error) {
 		return nil, err
 	}
 	invoiceCreator := provideInvoiceCreateRepo(db)
-	createInvoiceCommand := command.NewCreateInvoiceCommand(invoiceCreator)
-	createInvoiceHandler := handlers.NewCreateInvoiceHandler(createInvoiceCommand)
 	invoiceByIDReader := provideInvoiceByIDRepo(db)
+	customerRepository := provideCustomerRepo(db)
+	productRepository := provideProductRepo(db)
+	createInvoiceCommand := command.NewCreateInvoiceCommand(invoiceCreator, invoiceByIDReader, customerRepository, productRepository)
+	createInvoiceHandler := handlers.NewCreateInvoiceHandler(createInvoiceCommand)
 	invoiceUpdater := provideInvoiceUpdateRepo(db)
-	updateInvoiceCommand := command.NewUpdateInvoiceCommand(invoiceByIDReader, invoiceUpdater)
+	updateInvoiceCommand := command.NewUpdateInvoiceCommand(invoiceByIDReader, invoiceUpdater, customerRepository)
 	updateInvoiceHandler := handlers.NewUpdateInvoiceHandler(updateInvoiceCommand)
 	invoiceListReader := provideInvoiceListRepo(db)
 	getAllInvoicesQuery := query.NewGetAllInvoicesQuery(invoiceListReader)
@@ -46,7 +49,7 @@ func InitializeApp(cfg *config.Config) (*fiber.App, error) {
 	cancelInvoiceCommand := command.NewCancelInvoiceCommand(invoiceStatusUpdater, invoiceStatusEventPublisher)
 	cancelInvoiceHandler := handlers.NewCancelInvoiceHandler(cancelInvoiceCommand, getInvoiceByIDQuery)
 	invoiceItemCreator := provideInvoiceItemCreateRepo(db)
-	createInvoiceItemCommand := command2.NewCreateInvoiceItemCommand(invoiceItemCreator)
+	createInvoiceItemCommand := command2.NewCreateInvoiceItemCommand(invoiceItemCreator, productRepository)
 	createInvoiceItemHandler := handlers.NewCreateInvoiceItemHandler(createInvoiceItemCommand)
 	invoiceItemListReader := provideInvoiceItemListRepo(db)
 	getAllInvoiceItemsQuery := query2.NewGetAllInvoiceItemsQuery(invoiceItemListReader)
@@ -61,6 +64,10 @@ func InitializeApp(cfg *config.Config) (*fiber.App, error) {
 	deleteInvoiceItemCommand := command2.NewDeleteInvoiceItemCommand(invoiceItemDeleter)
 	deleteInvoiceItemHandler := handlers.NewDeleteInvoiceItemHandler(deleteInvoiceItemCommand)
 	idempotencyRepository := provideIdempotencyRepo(db)
-	app := provideApp(createInvoiceHandler, updateInvoiceHandler, getAllInvoicesHandler, getInvoiceByIDHandler, payInvoiceHandler, cancelInvoiceHandler, createInvoiceItemHandler, getAllInvoiceItemsHandler, getInvoiceItemByIDHandler, updateInvoiceItemHandler, deleteInvoiceItemHandler, idempotencyRepository)
+	service := catalog.NewService(customerRepository, productRepository)
+	catalogHandler := handlers.NewCatalogHandler(service)
+	authConfig := provideAuthConfig(cfg)
+	handler := provideAuthMiddleware(authConfig)
+	app := provideApp(createInvoiceHandler, updateInvoiceHandler, getAllInvoicesHandler, getInvoiceByIDHandler, payInvoiceHandler, cancelInvoiceHandler, createInvoiceItemHandler, getAllInvoiceItemsHandler, getInvoiceItemByIDHandler, updateInvoiceItemHandler, deleteInvoiceItemHandler, idempotencyRepository, catalogHandler, handler)
 	return app, nil
 }

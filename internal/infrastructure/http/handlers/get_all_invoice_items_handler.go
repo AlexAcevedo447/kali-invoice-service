@@ -2,6 +2,7 @@ package handlers
 
 import (
 	appquery "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/query"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/ports"
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,9 +20,9 @@ func (h *GetAllInvoiceItemsHandler) Handle(c *fiber.Ctx) error {
 	if p.PageSize > 100 {
 		p.PageSize = 100
 	}
-	items, err := h.getAllQuery.Execute(p)
+	items, err := h.getAllQuery.Execute(middleware.TenantID(c), p)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return mapDomainError(err)
 	}
 	return c.JSON(items)
 }

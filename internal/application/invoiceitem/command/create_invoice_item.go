@@ -1,6 +1,7 @@
 package command
 
 import (
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/catalog"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/invoiceitem"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/ports"
 )
@@ -20,20 +21,30 @@ type InvoiceItemTaxInput struct {
 }
 
 type CreateInvoiceItemCommand struct {
-	repo ports.InvoiceItemCreator
+	repo     ports.InvoiceItemCreator
+	products ports.ProductRepository
 }
 
-func NewCreateInvoiceItemCommand(repo ports.InvoiceItemCreator) *CreateInvoiceItemCommand {
-	return &CreateInvoiceItemCommand{repo: repo}
+func NewCreateInvoiceItemCommand(repo ports.InvoiceItemCreator, products ports.ProductRepository) *CreateInvoiceItemCommand {
+	return &CreateInvoiceItemCommand{repo: repo, products: products}
 }
 
-func (c *CreateInvoiceItemCommand) Execute(input CreateInvoiceItemInput) (*invoiceitem.InvoiceItem, error) {
+func (c *CreateInvoiceItemCommand) Execute(tenantID string, input CreateInvoiceItemInput) (*invoiceitem.InvoiceItem, error) {
+	// El producto debe pertenecer al tenant; la factura se valida en el repositorio.
+	missing, err := c.products.MissingIDs(tenantID, []string{input.ItemID})
+	if err != nil {
+		return nil, err
+	}
+	if len(missing) > 0 {
+		return nil, catalog.ErrProductNotFound
+	}
+
 	taxes := mapTaxInputs(input.Taxes)
 	item, err := invoiceitem.New(input.InvoiceID, input.ItemID, input.Quantity, input.UnitPrice, taxes)
 	if err != nil {
 		return nil, err
 	}
-	if err := c.repo.Save(item); err != nil {
+	if err := c.repo.Save(tenantID, item); err != nil {
 		return nil, err
 	}
 	return item, nil

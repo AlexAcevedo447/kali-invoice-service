@@ -18,7 +18,7 @@ func NewInvoiceListRepo(db *bun.DB) ports.InvoiceListReader {
 	return &invoiceListRepo{db: db}
 }
 
-func (r *invoiceListRepo) GetAll(p ports.Pagination) ([]*invoice.Invoice, error) {
+func (r *invoiceListRepo) GetAll(tenantID string, p ports.Pagination) ([]*invoice.Invoice, error) {
 	if p.PageSize <= 0 {
 		p.PageSize = 20
 	}
@@ -33,6 +33,9 @@ func (r *invoiceListRepo) GetAll(p ports.Pagination) ([]*invoice.Invoice, error)
 		Relation("Items").
 		Relation("Items.Taxes").
 		Relation("Taxes").
+		Relation("Customer").
+		Relation("Items.Product").
+		Where("i.tenant_id = ?", tenantID).
 		// Orden estable: sin ORDER BY, Postgres puede repetir u omitir filas entre páginas.
 		OrderExpr("i.created_at DESC, i.id DESC").
 		Limit(p.PageSize).
@@ -49,8 +52,9 @@ func (r *invoiceListRepo) GetAll(p ports.Pagination) ([]*invoice.Invoice, error)
 	return result, nil
 }
 
-func (r *invoiceListRepo) Count() (int, error) {
+func (r *invoiceListRepo) Count(tenantID string) (int, error) {
 	return r.db.NewSelect().
 		Model((*models.InvoiceModel)(nil)).
+		Where("tenant_id = ?", tenantID).
 		Count(context.Background())
 }

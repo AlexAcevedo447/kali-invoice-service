@@ -20,8 +20,8 @@ func NewUpdateInvoiceItemCommand(reader ports.InvoiceItemByIDReader, updater por
 	return &UpdateInvoiceItemCommand{reader: reader, updater: updater}
 }
 
-func (c *UpdateInvoiceItemCommand) Execute(id string, input UpdateInvoiceItemInput) (*invoiceitem.InvoiceItem, error) {
-	item, err := c.reader.GetByID(id)
+func (c *UpdateInvoiceItemCommand) Execute(tenantID, id string, input UpdateInvoiceItemInput) (*invoiceitem.InvoiceItem, error) {
+	item, err := c.reader.GetByID(tenantID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (c *UpdateInvoiceItemCommand) Execute(id string, input UpdateInvoiceItemInp
 	if err := item.Update(input.Quantity, input.UnitPrice, taxes); err != nil {
 		return nil, err
 	}
-	if err := c.updater.Update(item); err != nil {
+	if err := c.updater.Update(tenantID, item); err != nil {
 		return nil, err
 	}
 	return item, nil

@@ -20,7 +20,7 @@ func NewInvoiceStatusRepo(db *bun.DB) ports.InvoiceStatusUpdater {
 	return &invoiceStatusRepo{db: db}
 }
 
-func (r *invoiceStatusRepo) UpdateStatus(id string, apply func(*invoice.Invoice) error) (*invoice.Invoice, error) {
+func (r *invoiceStatusRepo) UpdateStatus(tenantID, id string, apply func(*invoice.Invoice) error) (*invoice.Invoice, error) {
 	ctx := context.Background()
 
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -33,6 +33,7 @@ func (r *invoiceStatusRepo) UpdateStatus(id string, apply func(*invoice.Invoice)
 	err = tx.NewSelect().
 		Model(m).
 		Where("i.id = ?", id).
+		Where("i.tenant_id = ?", tenantID).
 		For("UPDATE").
 		Scan(ctx)
 	if err != nil {
@@ -48,7 +49,7 @@ func (r *invoiceStatusRepo) UpdateStatus(id string, apply func(*invoice.Invoice)
 	}
 
 	updated := mappers.InvoiceToModel(inv)
-	if _, err := tx.NewUpdate().Model(updated).WherePK().Exec(ctx); err != nil {
+	if _, err := tx.NewUpdate().Model(updated).WherePK().Where("tenant_id = ?", tenantID).Exec(ctx); err != nil {
 		return nil, err
 	}
 

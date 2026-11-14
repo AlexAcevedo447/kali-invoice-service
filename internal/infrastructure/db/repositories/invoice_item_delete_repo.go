@@ -18,7 +18,7 @@ func NewInvoiceItemDeleteRepo(db *bun.DB) ports.InvoiceItemDeleter {
 	return &invoiceItemDeleteRepo{db: db}
 }
 
-func (r *invoiceItemDeleteRepo) DeleteByID(id string) error {
+func (r *invoiceItemDeleteRepo) DeleteByID(tenantID, id string) error {
 	ctx := context.Background()
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -26,7 +26,14 @@ func (r *invoiceItemDeleteRepo) DeleteByID(id string) error {
 	}
 
 	var invoiceID string
-	if err := tx.NewSelect().Table("invoice_items").Column("invoice_id").Where("id = ?", id).Scan(ctx, &invoiceID); err != nil {
+	// Solo se encuentra la línea si su factura pertenece al tenant.
+	if err := tx.NewSelect().
+		TableExpr("invoice_items AS ii").
+		ColumnExpr("ii.invoice_id").
+		Join("JOIN invoices AS inv ON inv.id = ii.invoice_id").
+		Where("ii.id = ?", id).
+		Where("inv.tenant_id = ?", tenantID).
+		Scan(ctx, &invoiceID); err != nil {
 		_ = tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return invoiceitem.ErrNotFound
@@ -34,7 +41,7 @@ func (r *invoiceItemDeleteRepo) DeleteByID(id string) error {
 		return err
 	}
 
-	if err := ensureInvoiceEditableTx(ctx, tx, invoiceID); err != nil {
+	if err := ensureInvoiceEditableTx(ctx, tx, tenantID, invoiceID); err != nil {
 		_ = tx.Rollback()
 		return err
 	}

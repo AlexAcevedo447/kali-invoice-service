@@ -8,6 +8,8 @@ import (
 )
 
 type CreateInvoiceInput struct {
+	// TenantID proviene del token validado, nunca del cuerpo de la petición.
+	TenantID   string
 	CustomerID string
 	IssueDate  *time.Time
 	DueDate    *time.Time
@@ -28,11 +30,19 @@ type InvoiceItemTaxInput struct {
 }
 
 type CreateInvoiceCommand struct {
-	repo ports.InvoiceCreator
+	repo      ports.InvoiceCreator
+	reader    ports.InvoiceByIDReader
+	customers ports.CustomerRepository
+	products  ports.ProductRepository
 }
 
-func NewCreateInvoiceCommand(repo ports.InvoiceCreator) *CreateInvoiceCommand {
-	return &CreateInvoiceCommand{repo: repo}
+func NewCreateInvoiceCommand(
+	repo ports.InvoiceCreator,
+	reader ports.InvoiceByIDReader,
+	customers ports.CustomerRepository,
+	products ports.ProductRepository,
+) *CreateInvoiceCommand {
+	return &CreateInvoiceCommand{repo: repo, reader: reader, customers: customers, products: products}
 }
 
 func (c *CreateInvoiceCommand) Execute(input CreateInvoiceInput) (*invoice.Invoice, error) {
@@ -45,18 +55,26 @@ func (c *CreateInvoiceCommand) Execute(input CreateInvoiceInput) (*invoice.Invoi
 		dueDate = *input.DueDate
 	}
 
+	// Cliente y productos deben pertenecer al mismo tenant de la factura.
+	if err := ensureCustomerInTenant(c.customers, input.TenantID, input.CustomerID); err != nil {
+		return nil, err
+	}
+	productIDs := make([]string, 0, len(input.Items))
 	itemInputs := make([]invoice.ItemInput, 0, len(input.Items))
 	for _, it := range input.Items {
-		taxes := mapInvoiceItemTaxes(it.Taxes)
+		productIDs = append(productIDs, it.ItemID)
 		itemInputs = append(itemInputs, invoice.ItemInput{
 			ItemID:    it.ItemID,
 			Quantity:  it.Quantity,
 			UnitPrice: it.UnitPrice,
-			Taxes:     taxes,
+			Taxes:     mapInvoiceItemTaxes(it.Taxes),
 		})
 	}
+	if err := ensureProductsInTenant(c.products, input.TenantID, productIDs); err != nil {
+		return nil, err
+	}
 
-	inv, err := invoice.New(input.CustomerID, issueDate, dueDate, itemInputs)
+	inv, err := invoice.New(input.TenantID, input.CustomerID, issueDate, dueDate, itemInputs)
 	if err != nil {
 		return nil, err
 	}
@@ -65,5 +83,6 @@ func (c *CreateInvoiceCommand) Execute(input CreateInvoiceInput) (*invoice.Invoi
 		return nil, err
 	}
 
-	return inv, nil
+	// Se relee para devolver también los datos legibles de cliente y productos.
+	return c.reader.GetByID(input.TenantID, inv.ID)
 }

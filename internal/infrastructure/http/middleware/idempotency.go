@@ -30,6 +30,10 @@ func Idempotency(repo ports.IdempotencyRepository) fiber.Handler {
 			return fiber.NewError(fiber.StatusBadRequest, "Idempotency-Key header is required")
 		}
 
+		// La clave se aísla por tenant: dos empresas pueden usar la misma clave
+		// sin colisionar ni ver la respuesta guardada de la otra.
+		key = TenantID(c) + "|" + key
+
 		fingerprint := computeFingerprint(c.Method(), c.Path(), c.Body())
 
 		record, err := repo.FindByKey(key)

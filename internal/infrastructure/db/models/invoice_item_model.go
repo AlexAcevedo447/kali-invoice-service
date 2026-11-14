@@ -14,4 +14,6 @@ type InvoiceItemModel struct {
 	Subtotal  float64               `bun:"subtotal,notnull"`
 	Total     float64               `bun:"total,notnull"`
 	Taxes     []InvoiceItemTaxModel `bun:"rel:has-many,join:id=invoice_item_id"`
+	// Product solo se usa para leer datos legibles del producto.
+	Product *ProductModel `bun:"rel:belongs-to,join:item_id=id"`
 }

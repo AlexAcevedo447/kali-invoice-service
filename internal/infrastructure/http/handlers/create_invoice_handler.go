@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"strconv"
 	"time"
 
@@ -51,6 +52,7 @@ func (h *CreateInvoiceHandler) Handle(c *fiber.Ctx) error {
 	}
 
 	inv, err := h.createCmd.Execute(appcommand.CreateInvoiceInput{
+		TenantID:   middleware.TenantID(c),
 		CustomerID: req.CustomerID,
 		IssueDate:  req.IssueDate,
 		DueDate:    req.DueDate,

@@ -11,13 +11,14 @@ import (
 
 // ensureInvoiceEditableTx bloquea la factura dentro de la transacción y rechaza
 // cualquier cambio de sus líneas si no está PENDING (PAID/CANCELED quedan cerradas)
-// o si no existe.
-func ensureInvoiceEditableTx(ctx context.Context, tx bun.Tx, invoiceID string) error {
+// o si no existe dentro del tenant (una factura de otra empresa se trata como inexistente).
+func ensureInvoiceEditableTx(ctx context.Context, tx bun.Tx, tenantID, invoiceID string) error {
 	var status string
 	err := tx.NewSelect().
 		Table("invoices").
 		Column("status").
 		Where("id = ?", invoiceID).
+		Where("tenant_id = ?", tenantID).
 		For("UPDATE").
 		Scan(ctx, &status)
 	if err != nil {

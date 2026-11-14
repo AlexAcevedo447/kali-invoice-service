@@ -16,8 +16,9 @@ func Register(
 	updateH *handlers.UpdateInvoiceItemHandler,
 	deleteH *handlers.DeleteInvoiceItemHandler,
 	idempotencyRepo ports.IdempotencyRepository,
+	auth fiber.Handler,
 ) {
-	g := router.Group("/invoice-items")
+	g := router.Group("/invoice-items", auth)
 	g.Post("/", middleware.Idempotency(idempotencyRepo), createH.Handle)
 	g.Get("/", getAllH.Handle)
 	g.Get("/:id", getByIDH.Handle)

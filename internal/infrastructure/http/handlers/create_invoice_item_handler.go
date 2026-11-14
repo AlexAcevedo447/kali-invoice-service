@@ -2,6 +2,7 @@ package handlers
 
 import (
 	appcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/command"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/logger"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/metrics"
 	"github.com/gofiber/fiber/v2"
@@ -35,7 +36,7 @@ func (h *CreateInvoiceItemHandler) Handle(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "item_id must be a valid UUID")
 	}
 
-	item, err := h.createCmd.Execute(req)
+	item, err := h.createCmd.Execute(middleware.TenantID(c), req)
 	if err != nil {
 		logger.Error("failed to create invoice item", logger.Fields{
 			"invoice_id": req.InvoiceID,

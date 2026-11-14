@@ -17,8 +17,10 @@ func Register(
 	payH *handlers.PayInvoiceHandler,
 	cancelH *handlers.CancelInvoiceHandler,
 	idempotencyRepo ports.IdempotencyRepository,
+	auth fiber.Handler,
 ) {
-	g := router.Group("/invoices")
+	// Toda operación de facturas exige un token válido; el tenant sale del token.
+	g := router.Group("/invoices", auth)
 	g.Post("/", middleware.Idempotency(idempotencyRepo), createH.Handle)
 	g.Put("/:id", middleware.Idempotency(idempotencyRepo), updateH.Handle)
 	g.Get("/", getAllH.Handle)

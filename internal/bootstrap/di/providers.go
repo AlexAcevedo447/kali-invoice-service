@@ -1,6 +1,7 @@
 package di
 
 import (
+	appcatalog "github.com/AlexAcevedo447/kali-invoice-service/internal/application/catalog"
 	appcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/command"
 	appquery "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/query"
 	itemcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/command"
@@ -11,6 +12,7 @@ import (
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/db/repositories"
 	infrahttp "github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/handlers"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/routes"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/messaging"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/ports"
@@ -86,6 +88,27 @@ func provideInvoiceStatusEventPublisher(cfg config.RabbitMQConfig) ports.Invoice
 	return messaging.NewInvoiceStatusPublisher(cfg)
 }
 
+func provideCustomerRepo(db *bun.DB) ports.CustomerRepository {
+	return repositories.NewCustomerRepo(db)
+}
+
+func provideProductRepo(db *bun.DB) ports.ProductRepository {
+	return repositories.NewProductRepo(db)
+}
+
+// provideAuthMiddleware valida los access tokens de kali-auth-context con su JWKS.
+func provideAuthMiddleware(cfg config.AuthConfig) fiber.Handler {
+	return middleware.Authenticate(middleware.AuthConfig{
+		Keys:     middleware.NewJWKSKeySet(cfg.JWKSURL),
+		Issuer:   cfg.Issuer,
+		Audience: cfg.Audience,
+	})
+}
+
+func provideAuthConfig(cfg *config.Config) config.AuthConfig {
+	return cfg.Auth
+}
+
 func provideApp(
 	createH *handlers.CreateInvoiceHandler,
 	updateH *handlers.UpdateInvoiceHandler,
@@ -99,6 +122,8 @@ func provideApp(
 	updateItemH *handlers.UpdateInvoiceItemHandler,
 	deleteItemH *handlers.DeleteInvoiceItemHandler,
 	idempotencyRepo ports.IdempotencyRepository,
+	catalogH *handlers.CatalogHandler,
+	auth fiber.Handler,
 ) *fiber.App {
 	app := infrahttp.NewFiberApp()
 	v1 := app.Group("/api/v1")
@@ -116,6 +141,8 @@ func provideApp(
 		updateItemH,
 		deleteItemH,
 		idempotencyRepo,
+		catalogH,
+		auth,
 	)
 	return app
 }
@@ -141,6 +168,8 @@ var RepositorySet = wire.NewSet(
 	provideInvoiceItemListRepo,
 	provideIdempotencyRepo,
 	provideInvoiceStatusEventPublisher,
+	provideCustomerRepo,
+	provideProductRepo,
 )
 
 var ApplicationSet = wire.NewSet(
@@ -155,6 +184,7 @@ var ApplicationSet = wire.NewSet(
 	itemcommand.NewDeleteInvoiceItemCommand,
 	itemquery.NewGetAllInvoiceItemsQuery,
 	itemquery.NewGetInvoiceItemByIDQuery,
+	appcatalog.NewService,
 )
 
 var HttpSet = wire.NewSet(
@@ -169,5 +199,8 @@ var HttpSet = wire.NewSet(
 	handlers.NewGetInvoiceItemByIDHandler,
 	handlers.NewUpdateInvoiceItemHandler,
 	handlers.NewDeleteInvoiceItemHandler,
+	handlers.NewCatalogHandler,
+	provideAuthConfig,
+	provideAuthMiddleware,
 	provideApp,
 )

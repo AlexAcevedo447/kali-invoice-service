@@ -1,5 +1,5 @@
 package ports
 
 type InvoiceItemDeleter interface {
-	DeleteByID(id string) error
+	DeleteByID(tenantID, id string) error
 }

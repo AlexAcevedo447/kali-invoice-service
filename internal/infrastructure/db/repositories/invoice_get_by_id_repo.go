@@ -20,14 +20,17 @@ func NewInvoiceByIDRepo(db *bun.DB) ports.InvoiceByIDReader {
 	return &invoiceByIDRepo{db: db}
 }
 
-func (r *invoiceByIDRepo) GetByID(id string) (*invoice.Invoice, error) {
+func (r *invoiceByIDRepo) GetByID(tenantID, id string) (*invoice.Invoice, error) {
 	m := new(models.InvoiceModel)
 	err := r.db.NewSelect().
 		Model(m).
 		Relation("Items").
 		Relation("Items.Taxes").
 		Relation("Taxes").
+		Relation("Customer").
+		Relation("Items.Product").
 		Where("i.id = ?", id).
+		Where("i.tenant_id = ?", tenantID).
 		Scan(context.Background())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	appcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/command"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/logger"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/metrics"
 	"github.com/gofiber/fiber/v2"
@@ -20,7 +21,7 @@ func (h *DeleteInvoiceItemHandler) Handle(c *fiber.Ctx) error {
 	if err := validateUUID(id); err != nil {
 		return err
 	}
-	if err := h.deleteCmd.Execute(id); err != nil {
+	if err := h.deleteCmd.Execute(middleware.TenantID(c), id); err != nil {
 		logger.Error("failed to delete invoice item", logger.Fields{
 			"item_id": id,
 			"error":   err.Error(),

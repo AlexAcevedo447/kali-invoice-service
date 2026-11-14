@@ -1,7 +1,6 @@
 package invoice
 
 import (
-	"errors"
 	"time"
 
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/domain/invoiceitem"
@@ -17,17 +16,23 @@ const (
 )
 
 type Invoice struct {
-	ID         string
+	ID string
+	// TenantID es la empresa dueña de la factura; proviene siempre del token validado.
+	TenantID   string
 	CustomerID string
-	IssueDate  time.Time
-	DueDate    time.Time
-	Items      []invoiceitem.InvoiceItem
-	Subtotal   float64
-	TaxTotal   float64
-	Total      float64
-	Status     Status
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	// CustomerName y CustomerDocument son datos legibles del cliente (solo lectura,
+	// se completan al consultar desde el catálogo de clientes del tenant).
+	CustomerName     string
+	CustomerDocument string
+	IssueDate        time.Time
+	DueDate          time.Time
+	Items            []invoiceitem.InvoiceItem
+	Subtotal         float64
+	TaxTotal         float64
+	Total            float64
+	Status           Status
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // ItemInput contiene los datos necesarios para crear un ítem al construir la factura.
@@ -39,12 +44,20 @@ type ItemInput struct {
 }
 
 // New construye una factura válida desde cero.
-func New(customerID string, issueDate, dueDate time.Time, inputs []ItemInput) (*Invoice, error) {
+func New(tenantID, customerID string, issueDate, dueDate time.Time, inputs []ItemInput) (*Invoice, error) {
+	if tenantID == "" {
+		return nil, ErrTenantRequired
+	}
 	if customerID == "" {
-		return nil, errors.New("customer_id is required")
+		return nil, ErrCustomerIDRequired
 	}
 	if len(inputs) == 0 {
-		return nil, errors.New("invoice must have at least one item")
+		return nil, ErrItemsRequired
+	}
+	// Misma regla que al editar (UpdateHeader): el vencimiento no puede ser
+	// anterior a la emisión.
+	if dueDate.Before(issueDate) {
+		return nil, ErrDueDateBeforeIssueDate
 	}
 
 	invoiceID := uuid.New().String()
@@ -61,6 +74,7 @@ func New(customerID string, issueDate, dueDate time.Time, inputs []ItemInput) (*
 
 	inv := &Invoice{
 		ID:         invoiceID,
+		TenantID:   tenantID,
 		CustomerID: customerID,
 		IssueDate:  issueDate,
 		DueDate:    dueDate,
@@ -92,10 +106,10 @@ func (i *Invoice) UpdateHeader(customerID string, dueDate time.Time) error {
 		return err
 	}
 	if customerID == "" {
-		return errors.New("customer_id is required")
+		return ErrCustomerIDRequired
 	}
 	if dueDate.Before(i.IssueDate) {
-		return errors.New("due_date cannot be before issue_date")
+		return ErrDueDateBeforeIssueDate
 	}
 	i.CustomerID = customerID
 	i.DueDate = dueDate

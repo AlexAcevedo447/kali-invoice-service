@@ -10,6 +10,6 @@ func NewDeleteInvoiceItemCommand(deleter ports.InvoiceItemDeleter) *DeleteInvoic
 	return &DeleteInvoiceItemCommand{deleter: deleter}
 }
 
-func (c *DeleteInvoiceItemCommand) Execute(id string) error {
-	return c.deleter.DeleteByID(id)
+func (c *DeleteInvoiceItemCommand) Execute(tenantID, id string) error {
+	return c.deleter.DeleteByID(tenantID, id)
 }

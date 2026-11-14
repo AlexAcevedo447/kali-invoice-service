@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"strconv"
 
 	appquery "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoice/query"
@@ -25,13 +26,14 @@ func (h *GetAllInvoicesHandler) Handle(c *fiber.Ctx) error {
 		p.PageSize = 100
 	}
 
-	invoices, err := h.getAllQuery.Execute(p)
+	tenantID := middleware.TenantID(c)
+	invoices, err := h.getAllQuery.Execute(tenantID, p)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return mapDomainError(err)
 	}
-	total, err := h.getAllQuery.Total()
+	total, err := h.getAllQuery.Total(tenantID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return mapDomainError(err)
 	}
 	// El cuerpo sigue siendo el arreglo de facturas; el total viaja en cabecera.
 	c.Set("X-Total-Count", strconv.Itoa(total))

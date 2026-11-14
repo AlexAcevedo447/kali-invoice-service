@@ -13,6 +13,6 @@ func NewGetInvoiceItemByIDQuery(repo ports.InvoiceItemByIDReader) *GetInvoiceIte
 	return &GetInvoiceItemByIDQuery{repo: repo}
 }
 
-func (q *GetInvoiceItemByIDQuery) Execute(id string) (*invoiceitem.InvoiceItem, error) {
-	return q.repo.GetByID(id)
+func (q *GetInvoiceItemByIDQuery) Execute(tenantID, id string) (*invoiceitem.InvoiceItem, error) {
+	return q.repo.GetByID(tenantID, id)
 }

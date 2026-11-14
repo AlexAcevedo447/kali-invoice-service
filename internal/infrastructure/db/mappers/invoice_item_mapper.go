@@ -56,15 +56,21 @@ func ModelToInvoiceItem(m *models.InvoiceItemModel) *invoiceitem.InvoiceItem {
 		})
 	}
 
+	var productCode, productName string
+	if m.Product != nil {
+		productCode, productName = m.Product.Code, m.Product.Name
+	}
 	return &invoiceitem.InvoiceItem{
-		ID:        m.ID,
-		InvoiceID: m.InvoiceID,
-		ItemID:    m.ItemID,
-		Quantity:  m.Quantity,
-		UnitPrice: m.UnitPrice,
-		Taxes:     taxes,
-		TaxTotal:  m.TaxTotal,
-		Subtotal:  m.Subtotal,
-		Total:     m.Total,
+		ID:          m.ID,
+		InvoiceID:   m.InvoiceID,
+		ItemID:      m.ItemID,
+		ProductCode: productCode,
+		ProductName: productName,
+		Quantity:    m.Quantity,
+		UnitPrice:   m.UnitPrice,
+		Taxes:       taxes,
+		TaxTotal:    m.TaxTotal,
+		Subtotal:    m.Subtotal,
+		Total:       m.Total,
 	}
 }

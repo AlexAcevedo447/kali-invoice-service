@@ -2,6 +2,7 @@ package handlers
 
 import (
 	appcommand "github.com/AlexAcevedo447/kali-invoice-service/internal/application/invoiceitem/command"
+	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/http/middleware"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/logger"
 	"github.com/AlexAcevedo447/kali-invoice-service/internal/infrastructure/metrics"
 	"github.com/gofiber/fiber/v2"
@@ -26,7 +27,7 @@ func (h *UpdateInvoiceItemHandler) Handle(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 
-	item, err := h.updateCmd.Execute(id, req)
+	item, err := h.updateCmd.Execute(middleware.TenantID(c), id, req)
 	if err != nil {
 		logger.Error("failed to update invoice item", logger.Fields{
 			"item_id": id,
