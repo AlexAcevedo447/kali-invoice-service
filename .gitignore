@@ -30,7 +30,6 @@ logs/
 # Go
 # ====================================
 vendor/
-go.sum
 go.work.sum
 
 # ====================================
@@ -65,3 +64,7 @@ kali_invoice_data/
 kali-dev-db-data/
 kali-prod-db-data/
 kali-prod-rabbitmq-data/
+
+# Binarios y paquetes generados en la raíz (no se versionan)
+/api
+*.zip
