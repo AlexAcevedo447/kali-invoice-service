@@ -515,8 +515,9 @@ total = subtotal + tax_total
   or equal to 0` si es negativa.
 - **Cálculo:** `amount = subtotal × rate` en `float64` (IEEE-754 doble precisión) **sin redondeo**;
   `tax_total = Σ DEBIT − Σ CREDIT` en el orden de la lista; los totales de la factura se suman en
-  Postgres. El servidor no define tarifa máxima ni regla de redondeo: la interfaz muestra los
-  valores exactos (D4-04) y la regla queda como pregunta de negocio pendiente PN-01
+  Postgres. El servidor no define tarifa máxima ni regla de redondeo: **limitación aceptada PN-01**
+  para este alcance (no acredita cumplimiento tributario). La interfaz presenta los importes con 2
+  decimales solo como formato visual; los valores de la API y los cálculos no cambian
   (`invoice-kali-front/docs/requisitos/INCREMENTO_04_IMPUESTOS.md`).
 - **Orden:** los impuestos se devuelven en el orden enviado (columna `position`, migración v9;
   filas anteriores quedan en 0 y se ordenan por `id`).
